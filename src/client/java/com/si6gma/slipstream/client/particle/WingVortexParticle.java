@@ -34,7 +34,7 @@ public class WingVortexParticle extends SingleQuadParticle {
         super.tick();
         if (this.removed) return;
         float progress = (float) this.age / this.lifetime;
-        this.alpha = 0.55f * (1.0f  progress);
+        this.alpha = 0.55f * (1.0f - progress);
         this.quadSize *= (progress < 0.3f ? 1.04f : 0.97f);
         this.oRoll = this.roll;
         this.roll += 0.03f;

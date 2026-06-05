@@ -30,10 +30,10 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     private Set<String> disabledWorlds;
     private final Random random = new Random();
 
-    // Only iterate activelygliding players instead of all online players
+    // Only iterate actively-gliding players instead of all online players
     private final Set<UUID> glidingPlayers = Collections.synchronizedSet(new HashSet<>());
 
-    // Perplayer raycast cache  avoids a full DDA traversal every tick
+    // Per-player raycast cache — avoids a full DDA traversal every tick
     private final Map<UUID, CachedHit> hitCache = new HashMap<>();
 
     public GroundEffectTask(SlipstreamPlugin plugin) {
@@ -42,9 +42,9 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     }
 
     public void reload() {
-        effectHeight = plugin.getConfig().getDouble("effectheight", 20.0);
-        waterSprayHeight = plugin.getConfig().getDouble("watersprayheight", 5.0);
-        disabledWorlds = new HashSet<>(plugin.getConfig().getStringList("disabledworlds"));
+        effectHeight = plugin.getConfig().getDouble("effect-height", 20.0);
+        waterSprayHeight = plugin.getConfig().getDouble("water-spray-height", 5.0);
+        disabledWorlds = new HashSet<>(plugin.getConfig().getStringList("disabled-worlds"));
     }
 
     @EventHandler
@@ -88,9 +88,9 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
         Location pos = player.getLocation();
         World world = pos.getWorld();
 
-        // O(1) heightmap precheck before doing any raycast
+        // O(1) heightmap pre-check before doing any raycast
         int heightmapY = world.getHighestBlockAt(pos.getBlockX(), pos.getBlockZ()).getY();
-        if (pos.getY()  heightmapY > effectHeight) return;
+        if (pos.getY() - heightmapY > effectHeight) return;
 
         // Raycast cache: reuse hit if player hasn't moved > 1 block and cache < 3 ticks old
         UUID id = player.getUniqueId();
@@ -98,19 +98,19 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
         long tick = plugin.getServer().getCurrentTick();
 
         if (cached == null
-                || tick  cached.tick > 3
-                || cached.pos.distanceSquared(pos.toVector()) > 1.0) {
+                || tick - cached.tick() > 3
+                || cached.pos().distanceSquared(pos.toVector()) > 1.0) {
             RayTraceResult result = world.rayTraceBlocks(
-                    pos, new Vector(0, 1, 0), effectHeight,
+                    pos, new Vector(0, -1, 0), effectHeight,
                     FluidCollisionMode.ALWAYS, true);
             cached = new CachedHit(result, pos.toVector(), tick);
             hitCache.put(id, cached);
         }
 
-        if (cached.result == null || cached.result.getHitBlock() == null) return;
+        if (cached.result() == null || cached.result().getHitBlock() == null) return;
 
-        Location hitLoc = Objects.requireNonNull(cached.result.getHitPosition()).toLocation(world);
-        double distToSurface = pos.getY()  hitLoc.getY();
+        Location hitLoc = Objects.requireNonNull(cached.result().getHitPosition()).toLocation(world);
+        double distToSurface = pos.getY() - hitLoc.getY();
         if (distToSurface <= 0 || distToSurface >= effectHeight) return;
 
         double proximity = GroundEffectMath.proximity(distToSurface, effectHeight);
@@ -120,10 +120,10 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
         double tx = vel.getX() / hSpeed;
         double tz = vel.getZ() / hSpeed;
         double rx = tz;
-        double rz = tx;
+        double rz = -tx;
 
         int playerTick = player.getTicksLived();
-        Block hitBlock = cached.result.getHitBlock();
+        Block hitBlock = cached.result().getHitBlock();
         BlockData hitData = hitBlock.getBlockData();
         boolean isWater = hitBlock.getType() == Material.WATER
                 || hitBlock.getType() == Material.BUBBLE_COLUMN
@@ -140,19 +140,19 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
 
             player.spawnParticle(Particle.CLOUD,
                     new Location(world, pos.getX() + rx * wingOffset, pos.getY() + 0.3, pos.getZ() + rz * wingOffset),
-                    0, rx * vortexOut  tx * 0.03, 0.01, rz * vortexOut  tz * 0.03, 0);
+                    0, rx * vortexOut - tx * 0.03, 0.01, rz * vortexOut - tz * 0.03, 0);
             player.spawnParticle(Particle.CLOUD,
-                    new Location(world, pos.getX()  rx * wingOffset, pos.getY() + 0.3, pos.getZ()  rz * wingOffset),
-                    0, rx * vortexOut  tx * 0.03, 0.01, rz * vortexOut  tz * 0.03, 0);
+                    new Location(world, pos.getX() - rx * wingOffset, pos.getY() + 0.3, pos.getZ() - rz * wingOffset),
+                    0, -rx * vortexOut - tx * 0.03, 0.01, -rz * vortexOut - tz * 0.03, 0);
 
             if (isWater && distToSurface <= waterSprayHeight) {
-                double waterProx = 1.0  (distToSurface / waterSprayHeight);
+                double waterProx = 1.0 - (distToSurface / waterSprayHeight);
                 int contactCount = 2 + (int) (waterProx * 3);
                 player.spawnParticle(Particle.SPLASH,
                         new Location(world, pos.getX() + rx, surfaceY + 0.05, pos.getZ() + rz),
                         contactCount, 0.2, 0.05, 0.2, 1.0);
                 player.spawnParticle(Particle.SPLASH,
-                        new Location(world, pos.getX()  rx, surfaceY + 0.05, pos.getZ()  rz),
+                        new Location(world, pos.getX() - rx, surfaceY + 0.05, pos.getZ() - rz),
                         contactCount, 0.2, 0.05, 0.2, 1.0);
             }
         }
@@ -161,13 +161,13 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
         if (playerTick % 3 != 0) return;
 
         if (isWater && distToSurface <= waterSprayHeight) {
-            double waterProx = 1.0  (distToSurface / waterSprayHeight);
+            double waterProx = 1.0 - (distToSurface / waterSprayHeight);
 
             // Wingtip spray arcs
             int sprayCount = 2 + (int) (waterProx * hSpeed * 6);
             for (int i = 0; i < Math.min(sprayCount, 8); i++) {
                 double wingPos = 0.8 + random.nextDouble() * 0.7;
-                double jitter = (random.nextDouble()  0.5) * 0.3;
+                double jitter = (random.nextDouble() - 0.5) * 0.3;
                 double outward = (0.3 + random.nextDouble() * 0.3) * waterProx;
                 double forward = hSpeed * (0.08 + random.nextDouble() * 0.08);
                 double up = (0.9 + random.nextDouble() * 1.2) * waterProx;
@@ -175,36 +175,36 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
                         new Location(world, pos.getX() + rx * wingPos + tx * jitter, surfaceY + 0.05, pos.getZ() + rz * wingPos + tz * jitter),
                         0, rx * outward + tx * forward, up, rz * outward + tz * forward, 1.0);
                 player.spawnParticle(Particle.SPLASH,
-                        new Location(world, pos.getX()  rx * wingPos + tx * jitter, surfaceY + 0.05, pos.getZ()  rz * wingPos + tz * jitter),
-                        0, rx * outward + tx * forward, up, rz * outward + tz * forward, 1.0);
+                        new Location(world, pos.getX() - rx * wingPos + tx * jitter, surfaceY + 0.05, pos.getZ() - rz * wingPos + tz * jitter),
+                        0, -rx * outward + tx * forward, up, -rz * outward + tz * forward, 1.0);
             }
 
             // Wake trail
             int wakeCount = 1 + (int) (waterProx * hSpeed * 3);
             for (int i = 0; i < Math.min(wakeCount, 5); i++) {
                 double back = 0.3 + random.nextDouble() * 2.0;
-                double side = (random.nextDouble()  0.5) * 0.8;
+                double side = (random.nextDouble() - 0.5) * 0.8;
                 player.spawnParticle(Particle.SPLASH,
-                        new Location(world, pos.getX()  tx * back + rx * side, surfaceY + 0.05, pos.getZ()  tz * back + rz * side),
-                        0, (random.nextDouble()  0.5) * 0.04, 0.08 + random.nextDouble() * 0.08, (random.nextDouble()  0.5) * 0.04, 1.0);
+                        new Location(world, pos.getX() - tx * back + rx * side, surfaceY + 0.05, pos.getZ() - tz * back + rz * side),
+                        0, (random.nextDouble() - 0.5) * 0.04, 0.08 + random.nextDouble() * 0.08, (random.nextDouble() - 0.5) * 0.04, 1.0);
             }
 
             // Fine mist
             if (waterProx > 0.5 && random.nextInt(3) == 0) {
                 player.spawnParticle(Particle.FALLING_WATER,
                         new Location(world,
-                                pos.getX() + tx * random.nextDouble() * 1.5 + rx * (random.nextDouble()  0.5) * 1.5,
+                                pos.getX() + tx * random.nextDouble() * 1.5 + rx * (random.nextDouble() - 0.5) * 1.5,
                                 surfaceY + 0.15 + random.nextDouble() * 0.4,
-                                pos.getZ() + tz * random.nextDouble() * 1.5 + rz * (random.nextDouble()  0.5) * 1.5),
+                                pos.getZ() + tz * random.nextDouble() * 1.5 + rz * (random.nextDouble() - 0.5) * 1.5),
                         0, tx * 0.02, 0.02, tz * 0.02, 1.0);
             }
 
         } else if (!isWater) {
-            // Blockaccurate surface dust
+            // Block-accurate surface dust
             int dustCount = 1 + (int) (proximity * hSpeed * 1.5);
             for (int i = 0; i < Math.min(dustCount, 4); i++) {
-                double sx = (random.nextDouble()  0.5) * 2.5;
-                double sz = (random.nextDouble()  0.5) * 2.5;
+                double sx = (random.nextDouble() - 0.5) * 2.5;
+                double sz = (random.nextDouble() - 0.5) * 2.5;
                 player.spawnParticle(Particle.BLOCK,
                         new Location(world, pos.getX() + sx, surfaceY + 0.1, pos.getZ() + sz),
                         0, sx * 0.04, 0.05 + random.nextDouble() * 0.08, sz * 0.04, 0, hitData);
@@ -215,10 +215,10 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
                 int puffCount = 1 + (int) (proximity * hSpeed * 0.5);
                 for (int i = 0; i < Math.min(puffCount, 2); i++) {
                     double back = 0.5 + random.nextDouble() * 1.5;
-                    double side = (random.nextDouble()  0.5);
+                    double side = (random.nextDouble() - 0.5);
                     player.spawnParticle(Particle.POOF,
-                            new Location(world, pos.getX()  tx * back + rx * side, surfaceY + 0.2 + random.nextDouble() * 0.3, pos.getZ()  tz * back + rz * side),
-                            0, (random.nextDouble()  0.5) * 0.02, 0.03 + random.nextDouble() * 0.03, (random.nextDouble()  0.5) * 0.02, 1.0);
+                            new Location(world, pos.getX() - tx * back + rx * side, surfaceY + 0.2 + random.nextDouble() * 0.3, pos.getZ() - tz * back + rz * side),
+                            0, (random.nextDouble() - 0.5) * 0.02, 0.03 + random.nextDouble() * 0.03, (random.nextDouble() - 0.5) * 0.02, 1.0);
                 }
             }
         }

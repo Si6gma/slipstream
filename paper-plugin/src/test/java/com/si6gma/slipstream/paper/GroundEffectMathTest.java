@@ -7,17 +7,17 @@ class GroundEffectMathTest {
 
     @Test
     void proximity_atSurface_isOne() {
-        assertEquals(1.0, GroundEffectMath.proximity(0, 20), 1e9);
+        assertEquals(1.0, GroundEffectMath.proximity(0, 20), 1e-9);
     }
 
     @Test
     void proximity_atMaxHeight_isZero() {
-        assertEquals(0.0, GroundEffectMath.proximity(20, 20), 1e9);
+        assertEquals(0.0, GroundEffectMath.proximity(20, 20), 1e-9);
     }
 
     @Test
     void proximity_atHalfHeight_isOneFourth() {
-        assertEquals(0.25, GroundEffectMath.proximity(10, 20), 1e9);
+        assertEquals(0.25, GroundEffectMath.proximity(10, 20), 1e-9);
     }
 
     @Test

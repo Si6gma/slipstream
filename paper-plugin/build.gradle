@@ -6,13 +6,13 @@ group = 'com.si6gma'
 version = rootProject.findProperty('mod_version') ?: '1.0.0'
 
 repositories {
-    maven { url = 'https://repo.papermc.io/repository/mavenpublic/' }
+    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
 }
 
 dependencies {
-    compileOnly "io.papermc.paper:paperapi:26.1.2.build.68stable"
-    testImplementation "org.junit.jupiter:junitjupiter:5.10.2"
-    testRuntimeOnly "org.junit.platform:junitplatformlauncher"
+    compileOnly "io.papermc.paper:paper-api:26.1.2.build.69-stable"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 test {

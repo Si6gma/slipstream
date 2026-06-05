@@ -25,7 +25,7 @@ public record ServerConfigPayload(
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ServerConfigPayload> CODEC =
             StreamCodec.of(
-                    (buf, payload) > {
+                    (buf, payload) -> {
                         buf.writeDouble(payload.effectHeight());
                         buf.writeDouble(payload.acceleration());
                         buf.writeDouble(payload.maxSpeed());
@@ -33,7 +33,7 @@ public record ServerConfigPayload(
                         buf.writeDouble(payload.liftStrength());
                         buf.writeDouble(payload.effectSpeedThreshold());
                     },
-                    buf > new ServerConfigPayload(
+                    buf -> new ServerConfigPayload(
                             buf.readDouble(),
                             buf.readDouble(),
                             buf.readDouble(),

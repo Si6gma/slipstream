@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LivingEntity.class)
 public class LivingEntityMixin {
 
-    // Perentity raycast cache. Instance fields are GC'd with the entity  no explicit
+    // Per-entity raycast cache. Instance fields are GC'd with the entity — no explicit
     // cleanup needed. Dead entities can't call travel(), so stale cache is never read.
     @Unique private BlockHitResult ege$cachedHit;
     @Unique private double ege$cacheX, ege$cacheY, ege$cacheZ;
@@ -52,19 +52,19 @@ public class LivingEntityMixin {
         // On server: active is always null, so always returns local config.
         SlipstreamConfig cfg = ServerConfigOverride.get();
 
-        // O(1) heightmap precheck  bail before any raycast when clearly too high
+        // O(1) heightmap pre-check — bail before any raycast when clearly too high
         int heightmapY = self.level().getHeight(
                 Heightmap.Types.MOTION_BLOCKING, Mth.floor(pos.x), Mth.floor(pos.z));
-        if (pos.y  heightmapY > cfg.effectHeightBlocks) return;
+        if (pos.y - heightmapY > cfg.effectHeightBlocks) return;
 
-        // Raycast cache  reuse hit until player moves >1 block or cache is >3 ticks old
+        // Raycast cache — reuse hit until player moves >1 block or cache is >3 ticks old
         ege$cacheAge++;
-        double dx = pos.x  ege$cacheX;
-        double dz = pos.z  ege$cacheZ;
-        double dy = pos.y  ege$cacheY;
+        double dx = pos.x - ege$cacheX;
+        double dz = pos.z - ege$cacheZ;
+        double dy = pos.y - ege$cacheY;
         if (ege$cachedHit == null || ege$cacheAge > 3 || dx * dx + dy * dy + dz * dz > 1.0) {
             ege$cachedHit = self.level().clip(new ClipContext(
-                    pos, pos.add(0, cfg.effectHeightBlocks, 0),
+                    pos, pos.add(0, -cfg.effectHeightBlocks, 0),
                     ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, self));
             ege$cacheX = pos.x;
             ege$cacheY = pos.y;
@@ -74,13 +74,13 @@ public class LivingEntityMixin {
         BlockHitResult surfaceHit = ege$cachedHit;
         if (surfaceHit.getType() == HitResult.Type.MISS) return;
 
-        double distToSurface = pos.y  surfaceHit.getLocation().y;
+        double distToSurface = pos.y - surfaceHit.getLocation().y;
         if (distToSurface <= 0 || distToSurface >= cfg.effectHeightBlocks) return;
 
         double proximity = GroundEffectMath.proximity(distToSurface, cfg.effectHeightBlocks);
 
         if (self.level().isClientSide()) {
-            // Speed boost  must be clientside (elytra is clientauthoritative)
+            // Speed boost — must be client-side (elytra is client-authoritative)
             if (!(self instanceof Player player) || !player.isLocalPlayer()) return;
 
             if (ServerConfigOverride.isActive() && hSpeedSq < cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
@@ -88,7 +88,7 @@ public class LivingEntityMixin {
                 Vec3 boosted = velocity.add(travelDir.scale(delta));
                 double boostedHSq = boosted.x * boosted.x + boosted.z * boosted.z;
                 if (boostedHSq > cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
-                    boosted = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick  hSpeed));
+                    boosted = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
                 }
                 if (hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
                     double lift = GroundEffectMath.liftForce(boosted.y, proximity, cfg.liftStrength);
@@ -97,7 +97,7 @@ public class LivingEntityMixin {
                 player.setDeltaMovement(boosted);
             }
 
-            // Proximitybased ambient sounds  throttled to avoid audio spam
+            // Proximity-based ambient sounds — throttled to avoid audio spam
             int soundTick = player.tickCount;
             if (proximity > 0.4 && soundTick % 20 == 0) {
                 float windVol = 0.08f + (float) (proximity * 0.12f);
@@ -108,7 +108,7 @@ public class LivingEntityMixin {
             BlockState soundBlock = self.level().getBlockState(surfaceHit.getBlockPos());
             boolean soundIsWater = soundBlock.getFluidState().is(FluidTags.WATER);
             if (soundIsWater && distToSurface <= cfg.waterSprayHeightBlocks && soundTick % 12 == 0) {
-                double wp = 1.0  (distToSurface / cfg.waterSprayHeightBlocks);
+                double wp = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
                 if (wp > 0.25) {
                     self.level().playLocalSound(pos.x, surfaceHit.getLocation().y, pos.z,
                             SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.BLOCKS,
@@ -124,7 +124,7 @@ public class LivingEntityMixin {
             if (!(self instanceof ServerPlayer player)) return;
 
             ServerLevel level = player.level();
-            Vec3 right = new Vec3(travelDir.z, 0, travelDir.x);
+            Vec3 right = new Vec3(travelDir.z, 0, -travelDir.x);
             var random = player.getRandom();
             double surfaceY = surfaceHit.getLocation().y;
             int tick = player.tickCount;
@@ -136,23 +136,23 @@ public class LivingEntityMixin {
                     double vortexOut = 0.12 * proximity;
                     level.sendParticles(ModParticles.WING_VORTEX,
                             pos.x + right.x * wingOffset, pos.y + 0.3, pos.z + right.z * wingOffset,
-                            0, right.x * vortexOut  travelDir.x * 0.03, 0.01, right.z * vortexOut  travelDir.z * 0.03, 0);
+                            0, right.x * vortexOut - travelDir.x * 0.03, 0.01, right.z * vortexOut - travelDir.z * 0.03, 0);
                     level.sendParticles(ModParticles.WING_VORTEX,
-                            pos.x  right.x * wingOffset, pos.y + 0.3, pos.z  right.z * wingOffset,
-                            0, right.x * vortexOut  travelDir.x * 0.03, 0.01, right.z * vortexOut  travelDir.z * 0.03, 0);
+                            pos.x - right.x * wingOffset, pos.y + 0.3, pos.z - right.z * wingOffset,
+                            0, -right.x * vortexOut - travelDir.x * 0.03, 0.01, -right.z * vortexOut - travelDir.z * 0.03, 0);
                 }
 
                 BlockState surfaceBlock = level.getBlockState(surfaceHit.getBlockPos());
                 boolean isWater = surfaceBlock.getFluidState().is(FluidTags.WATER);
 
                 if (isWater && distToSurface <= cfg.waterSprayHeightBlocks) {
-                    double waterProximity = 1.0  (distToSurface / cfg.waterSprayHeightBlocks);
+                    double waterProximity = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
                     int contactCount = 2 + (int) (waterProximity * 3);
                     level.sendParticles(ParticleTypes.SPLASH,
                             pos.x + right.x, surfaceY + 0.05, pos.z + right.z,
                             contactCount, 0.2, 0.05, 0.2, 1.0);
                     level.sendParticles(ParticleTypes.SPLASH,
-                            pos.x  right.x, surfaceY + 0.05, pos.z  right.z,
+                            pos.x - right.x, surfaceY + 0.05, pos.z - right.z,
                             contactCount, 0.2, 0.05, 0.2, 1.0);
                 }
             }
@@ -164,13 +164,13 @@ public class LivingEntityMixin {
             boolean isWater = surfaceBlock.getFluidState().is(FluidTags.WATER);
 
             if (isWater && distToSurface <= cfg.waterSprayHeightBlocks) {
-                double waterProximity = 1.0  (distToSurface / cfg.waterSprayHeightBlocks);
+                double waterProximity = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
 
                 // Wingtip spray arcs (capped at 8/side)
                 int sprayCount = 2 + (int) (waterProximity * hSpeed * 6);
                 for (int i = 0; i < Math.min(sprayCount, 8); i++) {
                     double wingPos = 0.8 + random.nextDouble() * 0.7;
-                    double spawnJitter = (random.nextDouble()  0.5) * 0.3;
+                    double spawnJitter = (random.nextDouble() - 0.5) * 0.3;
                     double outward = (0.3 + random.nextDouble() * 0.3) * waterProximity;
                     double forward = hSpeed * (0.08 + random.nextDouble() * 0.08);
                     double up = (0.9 + random.nextDouble() * 1.2) * waterProximity;
@@ -179,29 +179,29 @@ public class LivingEntityMixin {
                             pos.z + right.z * wingPos + travelDir.z * spawnJitter,
                             0, right.x * outward + travelDir.x * forward, up, right.z * outward + travelDir.z * forward, 1.0);
                     level.sendParticles(ParticleTypes.SPLASH,
-                            pos.x  right.x * wingPos + travelDir.x * spawnJitter, surfaceY + 0.05,
-                            pos.z  right.z * wingPos + travelDir.z * spawnJitter,
-                            0, right.x * outward + travelDir.x * forward, up, right.z * outward + travelDir.z * forward, 1.0);
+                            pos.x - right.x * wingPos + travelDir.x * spawnJitter, surfaceY + 0.05,
+                            pos.z - right.z * wingPos + travelDir.z * spawnJitter,
+                            0, -right.x * outward + travelDir.x * forward, up, -right.z * outward + travelDir.z * forward, 1.0);
                 }
 
                 // Wake trail (capped at 5)
                 int wakeCount = 1 + (int) (waterProximity * hSpeed * 3);
                 for (int i = 0; i < Math.min(wakeCount, 5); i++) {
                     double trailBack = 0.3 + random.nextDouble() * 2.0;
-                    double trailSide = (random.nextDouble()  0.5) * 0.8;
+                    double trailSide = (random.nextDouble() - 0.5) * 0.8;
                     level.sendParticles(ParticleTypes.SPLASH,
-                            pos.x  travelDir.x * trailBack + right.x * trailSide, surfaceY + 0.05,
-                            pos.z  travelDir.z * trailBack + right.z * trailSide,
-                            0, (random.nextDouble()  0.5) * 0.04, 0.08 + random.nextDouble() * 0.08,
-                            (random.nextDouble()  0.5) * 0.04, 1.0);
+                            pos.x - travelDir.x * trailBack + right.x * trailSide, surfaceY + 0.05,
+                            pos.z - travelDir.z * trailBack + right.z * trailSide,
+                            0, (random.nextDouble() - 0.5) * 0.04, 0.08 + random.nextDouble() * 0.08,
+                            (random.nextDouble() - 0.5) * 0.04, 1.0);
                 }
 
                 // Fine mist
                 if (waterProximity > 0.5 && random.nextInt(3) == 0) {
                     level.sendParticles(ParticleTypes.FALLING_WATER,
-                            pos.x + travelDir.x * random.nextDouble() * 1.5 + right.x * (random.nextDouble()  0.5) * 1.5,
+                            pos.x + travelDir.x * random.nextDouble() * 1.5 + right.x * (random.nextDouble() - 0.5) * 1.5,
                             surfaceY + 0.15 + random.nextDouble() * 0.4,
-                            pos.z + travelDir.z * random.nextDouble() * 1.5 + right.z * (random.nextDouble()  0.5) * 1.5,
+                            pos.z + travelDir.z * random.nextDouble() * 1.5 + right.z * (random.nextDouble() - 0.5) * 1.5,
                             0, travelDir.x * 0.02, 0.02, travelDir.z * 0.02, 1.0);
                 }
 
@@ -209,8 +209,8 @@ public class LivingEntityMixin {
                 // Ground dust (capped at 4)
                 int dustCount = 1 + (int) (proximity * hSpeed * 1.5);
                 for (int i = 0; i < Math.min(dustCount, 4); i++) {
-                    double scatterX = (random.nextDouble()  0.5) * 2.5;
-                    double scatterZ = (random.nextDouble()  0.5) * 2.5;
+                    double scatterX = (random.nextDouble() - 0.5) * 2.5;
+                    double scatterZ = (random.nextDouble() - 0.5) * 2.5;
                     level.sendParticles(
                             new BlockParticleOption(ParticleTypes.BLOCK, surfaceBlock),
                             pos.x + scatterX, surfaceY + 0.1, pos.z + scatterZ,
@@ -222,12 +222,12 @@ public class LivingEntityMixin {
                     int puffCount = 1 + (int) (proximity * hSpeed * 0.5);
                     for (int i = 0; i < Math.min(puffCount, 2); i++) {
                         level.sendParticles(ParticleTypes.POOF,
-                                pos.x  travelDir.x * (0.5 + random.nextDouble() * 1.5) + right.x * (random.nextDouble()  0.5),
+                                pos.x - travelDir.x * (0.5 + random.nextDouble() * 1.5) + right.x * (random.nextDouble() - 0.5),
                                 surfaceY + 0.2 + random.nextDouble() * 0.3,
-                                pos.z  travelDir.z * (0.5 + random.nextDouble() * 1.5) + right.z * (random.nextDouble()  0.5),
-                                0, (random.nextDouble()  0.5) * 0.02,
+                                pos.z - travelDir.z * (0.5 + random.nextDouble() * 1.5) + right.z * (random.nextDouble() - 0.5),
+                                0, (random.nextDouble() - 0.5) * 0.02,
                                 0.03 + random.nextDouble() * 0.03,
-                                (random.nextDouble()  0.5) * 0.02, 1.0);
+                                (random.nextDouble() - 0.5) * 0.02, 1.0);
                     }
                 }
             }

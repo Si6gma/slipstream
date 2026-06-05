@@ -4,7 +4,6 @@ import com.si6gma.slipstream.network.ServerConfigPayload;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import org.slf4j.Logger;
@@ -20,8 +19,6 @@ public class Slipstream implements ModInitializer {
         AutoConfig.register(SlipstreamConfig.class, GsonConfigSerializer::new);
         ModParticles.register();
 
-        PayloadTypeRegistry.playS2C().register(ServerConfigPayload.TYPE, ServerConfigPayload.CODEC);
-
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             SlipstreamConfig cfg = getConfig();
             ServerPlayNetworking.send(handler.getPlayer(), new ServerConfigPayload(
@@ -29,7 +26,8 @@ public class Slipstream implements ModInitializer {
                     cfg.accelerationPerTick,
                     cfg.maxSpeedBlocksPerTick,
                     cfg.waterSprayHeightBlocks,
-                    cfg.liftStrength
+                    cfg.liftStrength,
+                    cfg.effectSpeedThreshold
             ));
         });
 
