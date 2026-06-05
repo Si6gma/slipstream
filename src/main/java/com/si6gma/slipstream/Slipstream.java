@@ -20,6 +20,7 @@ public class Slipstream implements ModInitializer {
         ModParticles.register();
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            if (!server.isDedicatedServer()) return;
             SlipstreamConfig cfg = getConfig();
             ServerPlayNetworking.send(handler.getPlayer(), new ServerConfigPayload(
                     cfg.effectHeightBlocks,

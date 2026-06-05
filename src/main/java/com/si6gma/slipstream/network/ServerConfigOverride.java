@@ -11,6 +11,7 @@ import com.si6gma.slipstream.SlipstreamConfig;
 public final class ServerConfigOverride {
 
     private static volatile SlipstreamConfig active = null;
+    private static volatile boolean singleplayer = false;
 
     public static void apply(double effectHeight, double acceleration,
                              double maxSpeed, double waterSprayHeight,
@@ -22,6 +23,11 @@ public final class ServerConfigOverride {
         cfg.waterSprayHeightBlocks = waterSprayHeight;
         cfg.liftStrength = liftStrength;
         cfg.effectSpeedThreshold = effectSpeedThreshold;
+        try {
+            cfg.validatePostLoad();
+        } catch (SlipstreamConfig.ValidationException e) {
+            Slipstream.LOGGER.warn("Server config validation failed: {}", e.getMessage());
+        }
         active = cfg;
         Slipstream.LOGGER.info(
                 "Server config applied  effectHeight={}, maxSpeed={}", effectHeight, maxSpeed);
@@ -36,6 +42,15 @@ public final class ServerConfigOverride {
 
     public static boolean isActive() {
         return active != null;
+    }
+
+    public static void setSingleplayer(boolean value) {
+        singleplayer = value;
+    }
+
+    /** True if local boost is allowed (singleplayer or server has the mod). */
+    public static boolean isBoostAllowed() {
+        return singleplayer || active != null;
     }
 
     /** Returns the server override if one was received, otherwise the player's local config. */
