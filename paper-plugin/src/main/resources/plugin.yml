@@ -1,0 +1,18 @@
+name: Slipstream
+version: '${version}'
+main: com.si6gma.slipstream.paper.SlipstreamPlugin
+apiversion: '1.21'
+description: Serverside particles for the Slipstream Fabric mod.
+authors: [Si6gma]
+website: https://modrinth.com/mod/slipstream
+
+commands:
+  slipstream:
+    description: Slipstream admin commands.
+    usage: /slipstream reload
+    permission: slipstream.admin
+
+permissions:
+  slipstream.admin:
+    description: Access to /slipstream admin commands.
+    default: op

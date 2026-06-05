@@ -1,0 +1,36 @@
+# 
+# Slipstream  Paper Plugin Config
+#
+# These values are pushed to every connecting Fabric client
+# and override their local config for the duration of the session.
+# Players revert to their own settings when they disconnect.
+#
+# Set overrideclients to false to let players use their own
+# local config (particles will still use the values below).
+# 
+
+overrideclients: true
+
+# Worlds where ground effect particles and client override are disabled.
+# Use the exact world folder name (e.g. world_nether, world_the_end).
+disabledworlds: []
+
+# Blocks above the surface where the speed boost and particles activate.
+effectheight: 20.0
+
+# Speed added per tick at maximum ground proximity (client boost only).
+acceleration: 0.001
+
+# Hard speed ceiling for the boost in blocks/tick (client boost only).
+# Vanilla elytra with a firework tops out around 1.5.
+maxspeed: 3.0
+
+# Blocks above water where spray particles appear.
+watersprayheight: 5.0
+
+# Upward lift force when skimming near the surface (client boost only).
+liftstrength: 0.015
+
+# Fraction of maxspeed (0.0–1.0) required before vortex particles and lift activate.
+# E.g. 0.5 means both only kick in once you're at 50% of maxspeed.
+effectspeedthreshold: 0.5

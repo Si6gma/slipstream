@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.si6gma'
+version = rootProject.findProperty('mod_version') ?: '1.0.0'
+
+repositories {
+    maven { url = 'https://repo.papermc.io/repository/mavenpublic/' }
+}
+
+dependencies {
+    compileOnly "io.papermc.paper:paperapi:26.1.2.build.68stable"
+    testImplementation "org.junit.jupiter:junitjupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junitplatformlauncher"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filesMatching('plugin.yml') { expand props }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    archiveBaseName = 'slipstreampaper'
+}
