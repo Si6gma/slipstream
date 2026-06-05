@@ -8,8 +8,6 @@ import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
@@ -95,23 +93,6 @@ public class LivingEntityMixin {
                     boosted = boosted.add(0, lift, 0);
                 }
                 player.setDeltaMovement(boosted);
-            }
-
-            // Proximity-based ambient sounds — throttled to avoid audio spam
-            int soundTick = player.tickCount;
-            if (proximity > 0.4 && soundTick % 20 == 0) {
-                float windVol = 0.08f + (float) (proximity * 0.12f);
-                float windPitch = 0.9f + (float) (proximity * 0.4f);
-                self.level().playLocalSound(pos.x, pos.y, pos.z,
-                        SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, windVol, windPitch, false);
-            }
-            BlockState soundBlock = self.level().getBlockState(surfaceHit.getBlockPos());
-            boolean soundIsWater = soundBlock.getFluidState().is(FluidTags.WATER);
-            var random = self.getRandom();
-            if (!soundIsWater && !soundBlock.isAir() && proximity > 0.3 && soundTick % 20 == 0 && random.nextInt(3) == 0) {
-                self.level().playLocalSound(pos.x, pos.y, pos.z,
-                        soundBlock.getSoundType().getStepSound(), SoundSource.BLOCKS,
-                        (float) (0.06 + proximity * 0.08), 0.8f + (float) (proximity * 0.3f), false);
             }
 
         } else {
