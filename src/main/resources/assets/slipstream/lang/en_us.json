@@ -11,7 +11,7 @@
   "text.autoconfig.slipstream.option.maxSpeedBlocksPerTick.@Tooltip": "Hard speed ceiling for the ground effect boost, in blocks per tick. Vanilla elytra with a firework tops out around 1.5. Default: 3.0",
 
   "text.autoconfig.slipstream.option.waterSprayHeightBlocks": "Water Spray Height",
-  "text.autoconfig.slipstream.option.waterSprayHeightBlocks.@Tooltip": "How many blocks above water spray particles appear. Independent of the boost height  set lower than Effect Height for spray only when skimming close.",
+  "text.autoconfig.slipstream.option.waterSprayHeightBlocks.@Tooltip": "How many blocks above water spray particles appear. Independent of the boost height. Set lower than Effect Height for spray only when skimming close.",
 
   "text.autoconfig.slipstream.option.liftStrength": "Lift Strength",
   "text.autoconfig.slipstream.option.liftStrength.@Tooltip": "Upward force applied when descending near the surface. Counters gravity to keep you level when skimming. Fades out automatically when you pitch up to climb or dive."

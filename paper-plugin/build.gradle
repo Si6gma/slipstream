@@ -35,5 +35,5 @@ java {
 }
 
 jar {
-    archiveBaseName = 'slipstreampaper'
+    archiveBaseName = 'slipstream-paper'
 }

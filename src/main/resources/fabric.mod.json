@@ -3,7 +3,7 @@
   "id": "slipstream",
   "version": "${version}",
   "name": "Slipstream",
-  "description": "Aerodynamic ground effect for elytra  gain speed and lift when skimming near surfaces, with HTTYDstyle water spray and wingtip vortex particles.",
+  "description": "Aerodynamic ground effect for elytra — gain speed and lift when skimming near surfaces, with HTTYD-style water spray and wingtip vortex particles.",
   "authors": [
     "Si6gma"
   ],

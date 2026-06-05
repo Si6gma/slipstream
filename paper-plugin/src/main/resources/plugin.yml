@@ -1,7 +1,7 @@
 name: Slipstream
 version: '${version}'
 main: com.si6gma.slipstream.paper.SlipstreamPlugin
-apiversion: '1.21'
+api-version: '1.21'
 description: Serverside particles for the Slipstream Fabric mod.
 authors: [Si6gma]
 website: https://modrinth.com/mod/slipstream
