@@ -107,14 +107,8 @@ public class LivingEntityMixin {
             }
             BlockState soundBlock = self.level().getBlockState(surfaceHit.getBlockPos());
             boolean soundIsWater = soundBlock.getFluidState().is(FluidTags.WATER);
-            if (soundIsWater && distToSurface <= cfg.waterSprayHeightBlocks && soundTick % 12 == 0) {
-                double wp = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
-                if (wp > 0.25) {
-                    self.level().playLocalSound(pos.x, surfaceHit.getLocation().y, pos.z,
-                            SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.BLOCKS,
-                            (float) (0.1 + wp * 0.2), 1.3f + (float) (wp * 0.4f), false);
-                }
-            } else if (!soundIsWater && !soundBlock.isAir() && proximity > 0.3 && soundTick % 15 == 0) {
+            var random = self.getRandom();
+            if (!soundIsWater && !soundBlock.isAir() && proximity > 0.3 && soundTick % 20 == 0 && random.nextInt(3) == 0) {
                 self.level().playLocalSound(pos.x, pos.y, pos.z,
                         soundBlock.getSoundType().getStepSound(), SoundSource.BLOCKS,
                         (float) (0.06 + proximity * 0.08), 0.8f + (float) (proximity * 0.3f), false);
