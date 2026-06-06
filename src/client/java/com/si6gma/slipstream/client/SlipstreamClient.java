@@ -2,7 +2,6 @@ package com.si6gma.slipstream.client;
 
 import com.si6gma.slipstream.ModParticles;
 import com.si6gma.slipstream.client.particle.WingVortexParticle;
-import com.si6gma.slipstream.network.PaperConfigPayload;
 import com.si6gma.slipstream.network.ServerConfigOverride;
 import com.si6gma.slipstream.network.ServerConfigPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -18,9 +17,9 @@ public class SlipstreamClient implements ClientModInitializer {
         ParticleProviderRegistry.getInstance().register(ModParticles.WING_VORTEX, WingVortexParticle.Factory::new);
 
         PayloadTypeRegistry.clientboundPlay().register(ServerConfigPayload.TYPE, ServerConfigPayload.CODEC);
-        PayloadTypeRegistry.clientboundPlay().register(PaperConfigPayload.TYPE, PaperConfigPayload.CODEC);
 
-        // Apply server config when received from a Fabric server
+        // Apply server config when received from either a Fabric server or the Paper plugin.
+        // Both send the same wire format: 6 big-endian doubles on channel slipstream:server_config.
         ClientPlayNetworking.registerGlobalReceiver(ServerConfigPayload.TYPE, (payload, context) ->
                 ServerConfigOverride.apply(
                         payload.effectHeight(),
@@ -31,24 +30,6 @@ public class SlipstreamClient implements ClientModInitializer {
                         payload.effectSpeedThreshold()
                 )
         );
-
-        // Apply server config when received from the Paper plugin (raw plugin message bridge)
-        ClientPlayNetworking.registerGlobalReceiver(PaperConfigPayload.TYPE, (payload, context) -> {
-                try {
-                    java.io.DataInputStream in = new java.io.DataInputStream(
-                            new java.io.ByteArrayInputStream(payload.data()));
-                    ServerConfigOverride.apply(
-                            in.readDouble(), // effectHeight
-                            in.readDouble(), // acceleration
-                            in.readDouble(), // maxSpeed
-                            in.readDouble(), // waterSprayHeight
-                            in.readDouble(), // liftStrength
-                            in.readDouble()  // effectSpeedThreshold
-                    );
-                } catch (java.io.IOException e) {
-                    // Ignore malformed Paper plugin messages
-                }
-        });
 
         // Track singleplayer state so the mixin knows whether local boost is allowed
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
