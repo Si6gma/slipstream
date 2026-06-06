@@ -23,7 +23,7 @@ acceleration: 0.01
 
 # Hard speed ceiling for the boost in blocks/tick (client boost only).
 # Vanilla elytra with a firework tops out around 1.5.
-max-speed: 3.0
+max-speed: 1.5
 
 # Blocks above water where spray particles appear.
 water-spray-height: 5.0
@@ -32,7 +32,8 @@ water-spray-height: 5.0
 lift-strength: 0.6
 
 # Fraction of max-speed (0.0-1.0) required before lift and vortex particles activate.
-# Lower this if you want the ground effect to kick in during normal gliding.
-# Vanilla elytra cruises around 0.6 bpt; with max-speed=3.0, a threshold of 0.2
-# means the effect starts at 0.6 bpt (normal glide speed).
-effect-speed-threshold: 0.2
+# Vanilla elytra cruises around 0.6 bpt; with max-speed=1.5, a threshold of 0.3
+# means the effect starts at 0.45 bpt — below cruise speed so lift stays active
+# even when the player decelerates slightly by leveling out, but high enough
+# that it won't trigger at near-standstill glide speeds.
+effect-speed-threshold: 0.3

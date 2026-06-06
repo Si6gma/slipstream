@@ -11,13 +11,13 @@ public class SlipstreamConfig implements ConfigData {
 
   @ConfigEntry.Gui.Tooltip public double accelerationPerTick = 0.01;
 
-  @ConfigEntry.Gui.Tooltip public double maxSpeedBlocksPerTick = 3.0;
+  @ConfigEntry.Gui.Tooltip public double maxSpeedBlocksPerTick = 1.5;
 
   @ConfigEntry.Gui.Tooltip public double waterSprayHeightBlocks = 5.0;
 
   @ConfigEntry.Gui.Tooltip public double liftStrength = 0.6;
 
-  @ConfigEntry.Gui.Tooltip public double effectSpeedThreshold = 0.2;
+  @ConfigEntry.Gui.Tooltip public double effectSpeedThreshold = 0.3;
 
   @Override
   public void validatePostLoad() throws ValidationException {
