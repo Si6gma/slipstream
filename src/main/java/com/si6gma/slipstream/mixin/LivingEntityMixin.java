@@ -57,8 +57,7 @@ public class LivingEntityMixin {
         self.level().getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(pos.x), Mth.floor(pos.z));
     if (pos.y - heightmapY > cfg.effectHeightBlocks) return;
 
-    // Raycast cache reuse hit until player moves >1 block or cache is >3 ticks
-    // old
+    // Raycast cache reuse: skip raycast if player moved <1 block and cache is ≤3 ticks old
     ege$cacheAge++;
     double dx = pos.x - ege$cacheX;
     double dz = pos.z - ege$cacheZ;
@@ -106,9 +105,11 @@ public class LivingEntityMixin {
         // Look-direction is the primary intent signal — looking steeper than 30° means
         // the player wants to dive or climb freely, so lift disengages immediately
         // rather than fighting the velocity change.
-        if (hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick
+        double resultHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);
+        if (resultHSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick
             && Math.abs(player.getXRot()) <= 30.0f) {
-          double lift = GroundEffectMath.liftForce(result.y, hSpeed, proximity, cfg.liftStrength);
+          double lift =
+              GroundEffectMath.liftForce(result.y, resultHSpeed, proximity, cfg.liftStrength);
           result = result.add(0, lift, 0);
         }
         player.setDeltaMovement(result);

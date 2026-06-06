@@ -84,6 +84,7 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
 
   private void processPlayer(Player player) {
     if (disabledWorlds.contains(player.getWorld().getName())) return;
+    if (player.isUnderWater() || player.isInLava()) return;
     Vector vel = player.getVelocity();
     double hSpeedSq = vel.getX() * vel.getX() + vel.getZ() * vel.getZ();
     if (hSpeedSq < 0.0025) return;

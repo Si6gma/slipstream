@@ -10,7 +10,7 @@ public final class GroundEffectMath {
    * or two higher than ideal.
    */
   public static double proximity(double distToSurface, double effectHeight) {
-    final double buffer = 3.0;
+    double buffer = Math.min(3.0, effectHeight - 1.0);
     double adjusted = Math.max(0.0, distToSurface - buffer);
     double range = effectHeight - buffer;
     if (range <= 0) return 1.0;

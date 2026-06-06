@@ -27,6 +27,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   @Override
   public void onEnable() {
     saveDefaultConfig();
+    effectEnabled = getConfig().getBoolean("effect-enabled", true);
     task = new GroundEffectTask(this);
     task.runTaskTimer(this, 0L, 1L);
     getServer().getPluginManager().registerEvents(this, this);
@@ -56,8 +57,11 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
         .runTaskLater(
             this,
             () -> {
-              if (effectEnabled) sendConfig(e.getPlayer());
-              else sendDisabledConfig(e.getPlayer());
+              Player player = e.getPlayer();
+              if (getConfig().getStringList("disabled-worlds").contains(player.getWorld().getName()))
+                return;
+              if (effectEnabled) sendConfig(player);
+              else sendDisabledConfig(player);
             },
             20L);
   }
@@ -80,6 +84,8 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
             sender.sendMessage("§eSlipstream is already enabled.");
           } else {
             effectEnabled = true;
+            getConfig().set("effect-enabled", true);
+            saveConfig();
             broadcastConfig();
             sender.sendMessage("§aSlipstream ground effect enabled.");
           }
@@ -90,7 +96,12 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
             sender.sendMessage("§eSlipstream is already disabled.");
           } else {
             effectEnabled = false;
-            for (Player p : Bukkit.getOnlinePlayers()) sendDisabledConfig(p);
+            getConfig().set("effect-enabled", false);
+            saveConfig();
+            List<String> disabled = getConfig().getStringList("disabled-worlds");
+            for (Player p : Bukkit.getOnlinePlayers()) {
+              if (!disabled.contains(p.getWorld().getName())) sendDisabledConfig(p);
+            }
             sender.sendMessage("§cSlipstream ground effect disabled.");
           }
           return true;
@@ -164,7 +175,12 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   public void broadcastConfig() {
     reloadConfig();
     if (task != null) task.reload();
-    for (Player p : Bukkit.getOnlinePlayers()) sendConfig(p);
+    List<String> disabled = getConfig().getStringList("disabled-worlds");
+    for (Player p : Bukkit.getOnlinePlayers()) {
+      if (disabled.contains(p.getWorld().getName())) continue;
+      if (effectEnabled) sendConfig(p);
+      else sendDisabledConfig(p);
+    }
     getLogger().info("Config rebroadcast to " + Bukkit.getOnlinePlayers().size() + " players.");
   }
 }
