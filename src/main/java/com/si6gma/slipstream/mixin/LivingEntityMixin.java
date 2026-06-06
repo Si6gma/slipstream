@@ -93,7 +93,7 @@ public class LivingEntityMixin {
 
       if (ServerConfigOverride.isBoostAllowed()) {
         Vec3 boosted = velocity;
-        if (hSpeedSq < cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
+        if (velocity.y <= 0 && hSpeedSq < cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
           double delta =
               GroundEffectMath.boostDelta(
                   hSpeed, proximity, cfg.accelerationPerTick, cfg.maxSpeedBlocksPerTick);
