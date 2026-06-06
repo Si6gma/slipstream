@@ -34,14 +34,22 @@ public final class GroundEffectMath {
    * ySpeed error corrected per tick [0, 1].
    */
   public static double liftForce(
-      double ySpeed, double pitchDeg, double proximity, double liftStrength) {
-    if (liftStrength <= 0.0) return 0.0;
+      double ySpeed,
+      double pitchDeg,
+      double proximity,
+      double liftStrength,
+      double hSpeed,
+      double maxSpeed) {
+    if (liftStrength <= 0.0 || maxSpeed <= 0.0) return 0.0;
     if (Math.abs(pitchDeg) > 30.0) return 0.0;
+    double speedRatio = Math.min(hSpeed / maxSpeed, 1.0);
     double angleFactor = 1.0 - (Math.abs(pitchDeg) / 30.0);
-    // Anti-gravity: offsets elytra's ~0.02/tick residual gravity at level flight.
+    // Anti-gravity: offsets elytra's residual gravity at level flight. Set lower than vanilla's
+    // ~0.02/tick so the player still sinks gradually instead of being able to fly forever.
+    // Scaled by speed so low-speed flight can't coast indefinitely.
     // Only when descending; ascending players are pulled back by damping alone.
-    double antiGravity = (ySpeed < 0) ? 0.02 * angleFactor * proximity : 0.0;
-    double correction = -ySpeed * angleFactor * proximity * liftStrength + antiGravity;
+    double antiGravity = (ySpeed < 0) ? 0.01 * angleFactor * proximity * speedRatio : 0.0;
+    double correction = -ySpeed * angleFactor * proximity * liftStrength * speedRatio + antiGravity;
     // Cap: never overshoot past ySpeed=0
     return ySpeed < 0 ? Math.min(correction, -ySpeed) : Math.max(correction, -ySpeed);
   }

@@ -120,7 +120,13 @@ public class LivingEntityMixin {
           // atan2(ySpeed, hSpeed) convention used by liftForce.
           double lookPitchDeg = -player.getXRot();
           double lift =
-              GroundEffectMath.liftForce(result.y, lookPitchDeg, proximity, cfg.liftStrength);
+              GroundEffectMath.liftForce(
+                  result.y,
+                  lookPitchDeg,
+                  proximity,
+                  cfg.liftStrength,
+                  resultHSpeed,
+                  cfg.maxSpeedBlocksPerTick);
           if (lift != 0.0) result = result.add(0, lift, 0);
         }
         if (result != velocity) player.setDeltaMovement(result);
