@@ -97,6 +97,15 @@ class GroundEffectMathTest {
   }
 
   @Test
+  void liftForce_antiGravityFullyCompensatesGravityAtMaxSpeed() {
+    // At max speed the full 0.02 anti-gravity term kicks in and cancels a 0.02 gravity tick.
+    double afterGravity = -0.02;
+    double lift = GroundEffectMath.liftForce(afterGravity, 0.0, 1.0, 0.6, 1.5, 1.5);
+    double result = afterGravity + lift;
+    assertEquals(0.0, result, 1e-9, "Max-speed anti-gravity should fully cancel gravity");
+  }
+
+  @Test
   void liftForce_antiGravityPartiallyCompensatesGravityAtLowSpeed() {
     // At low speed the speedRatio scales both correction and anti-gravity down, so a 0.02
     // gravity tick is only partially cancelled and the player still sinks.
