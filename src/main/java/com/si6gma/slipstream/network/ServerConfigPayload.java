@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
 /**
- * Sent by the Paper plugin (or a Fabric server) to push serverside config
+ * Sent by the Paper plugin (or a Fabric server) to push server-side config
  * values to the Fabric client, overriding the player's local settings.
  * Uses raw double encoding so Paper can construct the bytes without Fabric.
  */

@@ -4,7 +4,7 @@ import com.si6gma.slipstream.Slipstream;
 import com.si6gma.slipstream.SlipstreamConfig;
 
 /**
- * Holds a serverpushed config that overrides the player's local settings.
+ * Holds a server-pushed config that overrides the player's local settings.
  * Only ever populated on the client side (via packet from Paper plugin or Fabric server).
  * Cleared on disconnect so singleplayer always reverts to local config.
  */
@@ -30,7 +30,7 @@ public final class ServerConfigOverride {
         }
         active = cfg;
         Slipstream.LOGGER.info(
-                "Server config applied  effectHeight={}, maxSpeed={}", effectHeight, maxSpeed);
+                "Server config applied — effectHeight={}, maxSpeed={}", effectHeight, maxSpeed);
     }
 
     public static void clear() {
