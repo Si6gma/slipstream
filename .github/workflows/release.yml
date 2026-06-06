@@ -12,6 +12,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-java@v5
         with:
@@ -27,12 +29,30 @@ jobs:
           key: loom-${{ hashFiles('gradle.properties') }}
           restore-keys: loom-
 
-      - run: ./gradlew build
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREVIOUS" ]; then
+            {
+              echo "changelog<<EOF"
+              git log --pretty=format:"- %s" "$PREVIOUS..HEAD"
+              echo ""
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "changelog=Initial release." >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: ./gradlew build publishMods
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CHANGELOG: ${{ steps.changelog.outputs.changelog }}
 
       - uses: softprops/action-gh-release@v3
         with:
           files: |
             build/libs/slipstream-*.jar
             paper-plugin/build/libs/slipstream-paper-*.jar
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.changelog }}
           fail_on_unmatched_files: true

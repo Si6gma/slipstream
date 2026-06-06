@@ -1,6 +1,7 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 	id 'maven-publish'
+	id 'me.modmuss50.mod-publish-plugin' version '2.0.0-beta.1'
 }
 
 version = project.mod_version
@@ -63,5 +64,19 @@ publishing {
 		create("mavenJava", MavenPublication) {
 			from components.java
 		}
+	}
+}
+
+publishMods {
+	file = tasks.named("jar").flatMap { it.archiveFile }
+	changelog = providers.environmentVariable("CHANGELOG").orElse("See GitHub release for full changelog.")
+	type = STABLE
+	modLoaders.add("fabric")
+	dryRun = providers.environmentVariable("MODRINTH_TOKEN").orNull == null
+
+	modrinth {
+		accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+		projectId = providers.gradleProperty("modrinth_project_id")
+		minecraftVersions.add(project.minecraft_version)
 	}
 }

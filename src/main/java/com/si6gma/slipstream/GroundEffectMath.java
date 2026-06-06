@@ -28,6 +28,7 @@ public final class GroundEffectMath {
    */
   public static double liftForce(
       double ySpeed, double hSpeed, double proximity, double liftStrength) {
+    if (liftStrength <= 0.0) return 0.0;
     double pitchDeg = Math.toDegrees(Math.atan2(ySpeed, hSpeed));
     if (Math.abs(pitchDeg) > 30.0) return 0.0;
     double angleFactor = 1.0 - (Math.abs(pitchDeg) / 30.0);

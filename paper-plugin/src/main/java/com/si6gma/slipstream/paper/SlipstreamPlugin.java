@@ -140,8 +140,9 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   }
 
   // Sends a no-op config so the Fabric mixin's boost and lift never activate.
-  // effectSpeedThreshold=1.0 means threshold == maxSpeed (never reached without boost),
-  // and acceleration=0 ensures no boost is applied.
+  // liftStrength=0 makes liftForce() return 0 immediately (including the anti-gravity term).
+  // acceleration=0 kills the horizontal boost. effectSpeedThreshold=1.0 is a belt-and-suspenders
+  // guard so the lift block is never even entered at normal flight speeds.
   private void sendDisabledConfig(Player player) {
     if (!player.isOnline()) return;
     try {
@@ -151,8 +152,8 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
       out.writeDouble(0.0); // acceleration — no boost
       out.writeDouble(getConfig().getDouble("max-speed", 1.5));
       out.writeDouble(getConfig().getDouble("water-spray-height", 5.0));
-      out.writeDouble(getConfig().getDouble("lift-strength", 0.6));
-      out.writeDouble(1.0); // effectSpeedThreshold — threshold == maxSpeed, unreachable
+      out.writeDouble(0.0); // liftStrength=0 — kills lift AND anti-gravity in liftForce()
+      out.writeDouble(1.0); // effectSpeedThreshold — threshold == maxSpeed, belt-and-suspenders
       player.sendPluginMessage(this, CHANNEL, bytes.toByteArray());
     } catch (IOException ex) {
       getLogger()
