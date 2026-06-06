@@ -71,11 +71,15 @@ body:
     id: logs
     attributes:
       label: Crash report or logs
-      description: Paste the full crash report or relevant log lines. Wrap in code blocks if needed.
+      description:
+        Paste the full crash report or relevant log lines. Wrap in code blocks
+        if needed.
       render: text
 
   - type: textarea
     id: other-mods
     attributes:
       label: Other mods installed
-      description: List any mods you think might be relevant. You can paste the full mod list if unsure.
+      description:
+        List any mods you think might be relevant. You can paste the full mod
+        list if unsure.

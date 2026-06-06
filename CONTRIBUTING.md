@@ -1,6 +1,8 @@
 # Contributing to Slipstream
 
-Thanks for your interest in contributing! Slipstream is a small, focused project and we want to keep it that way clean, fast, and maintainable. This guide should get you set up and help your contribution land smoothly.
+Thanks for your interest in contributing! Slipstream is a small, focused project
+and we want to keep it that way clean, fast, and maintainable. This guide should
+get you set up and help your contribution land smoothly.
 
 ## Quick Start
 
@@ -24,11 +26,29 @@ This repo produces two artifacts:
 | Fabric mod   | `src/`          | Core mod physics, particles, config, mixins                                                     |
 | Paper plugin | `paper-plugin/` | Serverside companion syncs config to Fabric clients and spawns particles for non-modded players |
 
-Both share the same math utilities. Changes to `GroundEffectMath` affect both sides, so keep them in sync.
+Both share the same math utilities. Changes to `GroundEffectMath` affect both
+sides, so keep them in sync.
 
 ## Coding Standards
 
-We don't enforce a formatter, but please match the style already in the codebase:
+We use [google-java-format](https://github.com/google/google-java-format) for
+Java and [Prettier](https://prettier.io) for everything else (JSON, YAML,
+Markdown). Install both and set up the pre-commit hook before making changes:
+
+```bash
+brew install google-java-format
+npm install -g prettier
+chmod +x .git/hooks/pre-commit
+```
+
+The hook at `.git/hooks/pre-commit` runs automatically on every commit and
+reformats all files. If you're not on macOS, install google-java-format via your
+package manager or grab the jar from the releases page.
+
+If you use VSCode, set `"java.format.settings.profile": "GoogleStyle"` in your
+settings to match.
+
+Beyond auto-formatting, please match the style already in the codebase:
 
 - **4 spaces** for indentation (no tabs)
 - **Opening braces on the same line**
@@ -59,20 +79,26 @@ We use JUnit 5. Run tests with:
 ./gradlew test
 ```
 
-- All math in `GroundEffectMath` must have unit tests. Cover edge cases (zero, max values, monotonic behavior).
-- Tests live next to the code they test: `src/test/java/<package>/ClassNameTest.java`.
+- All math in `GroundEffectMath` must have unit tests. Cover edge cases (zero,
+  max values, monotonic behavior).
+- Tests live next to the code they test:
+  `src/test/java/<package>/ClassNameTest.java`.
 - Use descriptive test names: `methodName_condition_expectedResult`.
 
-If you change physics behavior, make sure existing tests still pass and add new ones for the changed logic.
+If you change physics behavior, make sure existing tests still pass and add new
+ones for the changed logic.
 
 ## Pull Request Process
 
-1. **Fork** the repo and create a feature branch: `git checkout -b feature/short-description`
+1. **Fork** the repo and create a feature branch:
+   `git checkout -b feature/short-description`
 2. **Make your changes** keep the diff focused. One logical change per PR.
 3. **Add tests** if you changed logic or math.
 4. **Run the full build** locally: `./gradlew build`
-5. **Update docs** (`README.md`, `CONTRIBUTION.md`, etc.) if the user-facing behavior changes.
-6. **Open a PR** with a clear title and description. Reference any related issues.
+5. **Update docs** (`README.md`, `CONTRIBUTION.md`, etc.) if the user-facing
+   behavior changes.
+6. **Open a PR** with a clear title and description. Reference any related
+   issues.
 
 ### What makes a PR likely to merge
 
@@ -84,9 +110,12 @@ If you change physics behavior, make sure existing tests still pass and add new 
 
 ## Areas That Need Help
 
-- **Paper plugin parity** the Paper plugin currently only handles config sync and basic particles. Feature parity with the Fabric mod is a long-term goal.
-- **Performance** the mixin runs every tick for every fall-flying entity. Profile before and after if you touch hot paths.
-- **Documentation** clearer inline comments for the particle math are always welcome.
+- **Paper plugin parity** the Paper plugin currently only handles config sync
+  and basic particles. Feature parity with the Fabric mod is a long-term goal.
+- **Performance** the mixin runs every tick for every fall-flying entity.
+  Profile before and after if you touch hot paths.
+- **Documentation** clearer inline comments for the particle math are always
+  welcome.
 
 ## Reporting Bugs
 
@@ -100,4 +129,5 @@ Open an issue with:
 
 ## License
 
-By contributing, you agree that your code will be released under the [MIT License](LICENSE).
+By contributing, you agree that your code will be released under the
+[MIT License](LICENSE).

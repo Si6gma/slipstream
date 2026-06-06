@@ -1,5 +1,5 @@
 #
-# Slipstream — Paper Plugin Config
+# Slipstream Paper Plugin Config
 #
 # These values are pushed to every connecting Fabric client
 # and override their local config for the duration of the session.

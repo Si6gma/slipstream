@@ -3,10 +3,8 @@
   "id": "slipstream",
   "version": "${version}",
   "name": "Slipstream",
-  "description": "Aerodynamic ground effect for elytra — gain speed and lift when skimming near surfaces, with HTTYD-style water spray and wingtip vortex particles.",
-  "authors": [
-    "Si6gma"
-  ],
+  "description": "Aerodynamic ground effect for elytra gain speed and lift when skimming near surfaces, with HTTYD-style water spray and wingtip vortex particles.",
+  "authors": ["Si6gma"],
   "contact": {
     "homepage": "https://modrinth.com/mod/slipstream",
     "sources": "https://github.com/Si6gma/slipstream",
@@ -16,19 +14,11 @@
   "license": "MIT",
   "environment": "*",
   "entrypoints": {
-    "main": [
-      "com.si6gma.slipstream.Slipstream"
-    ],
-    "client": [
-      "com.si6gma.slipstream.client.SlipstreamClient"
-    ],
-    "modmenu": [
-      "com.si6gma.slipstream.client.ModMenuIntegration"
-    ]
+    "main": ["com.si6gma.slipstream.Slipstream"],
+    "client": ["com.si6gma.slipstream.client.SlipstreamClient"],
+    "modmenu": ["com.si6gma.slipstream.client.ModMenuIntegration"]
   },
-  "mixins": [
-    "slipstream.mixins.json"
-  ],
+  "mixins": ["slipstream.mixins.json"],
   "depends": {
     "fabricloader": ">=0.19.2",
     "minecraft": "~26.1.2",

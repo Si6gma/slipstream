@@ -8,13 +8,14 @@ import net.minecraft.resources.Identifier;
 
 public class ModParticles {
 
-    public static SimpleParticleType WING_VORTEX;
+  public static SimpleParticleType WING_VORTEX;
 
-    public static void register() {
-        WING_VORTEX = Registry.register(
+  @SuppressWarnings("null")
+  public static void register() {
+    WING_VORTEX =
+        Registry.register(
             BuiltInRegistries.PARTICLE_TYPE,
             Identifier.fromNamespaceAndPath(Slipstream.MOD_ID, "wing_vortex"),
-            FabricParticleTypes.simple()
-        );
-    }
+            FabricParticleTypes.simple());
+  }
 }

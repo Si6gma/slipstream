@@ -6,7 +6,9 @@ body:
     id: problem
     attributes:
       label: What problem does this solve?
-      description: Describe the situation where this would help. "I want X" on its own isn't enough — explain why.
+      description:
+        Describe the situation where this would help. "I want X" on its own
+        isn't enough explain why.
     validations:
       required: true
 
@@ -28,4 +30,6 @@ body:
     id: context
     attributes:
       label: Additional context
-      description: Screenshots, videos, links to similar mods, or anything else that might help.
+      description:
+        Screenshots, videos, links to similar mods, or anything else that might
+        help.

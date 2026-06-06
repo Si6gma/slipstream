@@ -11,31 +11,33 @@ import org.slf4j.LoggerFactory;
 
 public class Slipstream implements ModInitializer {
 
-    public static final String MOD_ID = "slipstream";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+  public static final String MOD_ID = "slipstream";
+  public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    @Override
-    public void onInitialize() {
-        AutoConfig.register(SlipstreamConfig.class, GsonConfigSerializer::new);
-        ModParticles.register();
+  @Override
+  public void onInitialize() {
+    AutoConfig.register(SlipstreamConfig.class, GsonConfigSerializer::new);
+    ModParticles.register();
 
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            if (!server.isDedicatedServer()) return;
-            SlipstreamConfig cfg = getConfig();
-            ServerPlayNetworking.send(handler.getPlayer(), new ServerConfigPayload(
-                    cfg.effectHeightBlocks,
-                    cfg.accelerationPerTick,
-                    cfg.maxSpeedBlocksPerTick,
-                    cfg.waterSprayHeightBlocks,
-                    cfg.liftStrength,
-                    cfg.effectSpeedThreshold
-            ));
+    ServerPlayConnectionEvents.JOIN.register(
+        (handler, sender, server) -> {
+          if (!server.isDedicatedServer()) return;
+          SlipstreamConfig cfg = getConfig();
+          ServerPlayNetworking.send(
+              handler.getPlayer(),
+              new ServerConfigPayload(
+                  cfg.effectHeightBlocks,
+                  cfg.accelerationPerTick,
+                  cfg.maxSpeedBlocksPerTick,
+                  cfg.waterSprayHeightBlocks,
+                  cfg.liftStrength,
+                  cfg.effectSpeedThreshold));
         });
 
-        LOGGER.info("Slipstream loaded.");
-    }
+    LOGGER.info("Slipstream loaded.");
+  }
 
-    public static SlipstreamConfig getConfig() {
-        return AutoConfig.getConfigHolder(SlipstreamConfig.class).getConfig();
-    }
+  public static SlipstreamConfig getConfig() {
+    return AutoConfig.getConfigHolder(SlipstreamConfig.class).getConfig();
+  }
 }
