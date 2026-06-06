@@ -81,12 +81,15 @@ public class LivingEntityMixin {
             // Speed boost — must be client-side (elytra is client-authoritative)
             if (!(self instanceof Player player) || !player.isLocalPlayer()) return;
 
-            if (ServerConfigOverride.isBoostAllowed() && hSpeedSq < cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
-                double delta = GroundEffectMath.boostDelta(hSpeed, proximity, cfg.accelerationPerTick, cfg.maxSpeedBlocksPerTick);
-                Vec3 boosted = velocity.add(travelDir.scale(delta));
-                double boostedHSq = boosted.x * boosted.x + boosted.z * boosted.z;
-                if (boostedHSq > cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
-                    boosted = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
+            if (ServerConfigOverride.isBoostAllowed()) {
+                Vec3 boosted = velocity;
+                if (hSpeedSq < cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
+                    double delta = GroundEffectMath.boostDelta(hSpeed, proximity, cfg.accelerationPerTick, cfg.maxSpeedBlocksPerTick);
+                    boosted = velocity.add(travelDir.scale(delta));
+                    double boostedHSq = boosted.x * boosted.x + boosted.z * boosted.z;
+                    if (boostedHSq > cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
+                        boosted = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
+                    }
                 }
                 if (hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
                     double lift = GroundEffectMath.liftForce(boosted.y, proximity, cfg.liftStrength);
