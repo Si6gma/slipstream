@@ -20,7 +20,7 @@ public class SlipstreamConfig implements ConfigData {
     public double waterSprayHeightBlocks = 5.0;
 
     @ConfigEntry.Gui.Tooltip
-    public double liftStrength = 0.015;
+    public double liftStrength = 0.6;
 
     @ConfigEntry.Gui.Tooltip
     public double effectSpeedThreshold = 0.5;

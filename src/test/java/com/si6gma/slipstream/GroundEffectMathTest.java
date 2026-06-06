@@ -35,44 +35,51 @@ class GroundEffectMathTest {
     // liftForce()
 
     @Test
-    void liftForce_whenAscending_isZero() {
-        assertEquals(0.0, GroundEffectMath.liftForce(0.5, 0.5, 1.0, 0.015), 1e-9);
-    }
-
-    @Test
     void liftForce_whenHorizontal_isZero() {
-        assertEquals(0.0, GroundEffectMath.liftForce(0.0, 0.5, 1.0, 0.015), 1e-9);
+        assertEquals(0.0, GroundEffectMath.liftForce(0.0, 1.5, 3.0, 1.0, 0.6), 1e-9);
     }
 
     @Test
-    void liftForce_neverExceedsDescendSpeed() {
-        // hSpeed=0.5 keeps all tested descents within ±30° except the steep ones (0.3, 1.0)
-        for (double descent : new double[]{0.01, 0.05, 0.1, 0.3, 1.0}) {
-            double lift = GroundEffectMath.liftForce(-descent, 0.5, 1.0, 0.015);
-            assertTrue(lift <= descent, "Lift must not exceed descent speed at descent=" + descent);
-            assertTrue(lift >= 0, "Lift must be non-negative");
+    void liftForce_whenDescending_isPositive() {
+        // ySpeed=-0.05, hSpeed=1.5 → pitch ≈ -1.9°, well inside the window
+        assertTrue(GroundEffectMath.liftForce(-0.05, 1.5, 3.0, 1.0, 0.6) > 0);
+    }
+
+    @Test
+    void liftForce_whenAscending_isNegative() {
+        // Bidirectional: pulls down when drifting up inside the window
+        assertTrue(GroundEffectMath.liftForce(0.05, 1.5, 3.0, 1.0, 0.6) < 0);
+    }
+
+    @Test
+    void liftForce_neverOvershoots() {
+        // Correction must not push ySpeed past zero in either direction
+        for (double ySpeed : new double[]{-0.01, -0.05, -0.1, 0.01, 0.05, 0.1}) {
+            double lift = GroundEffectMath.liftForce(ySpeed, 1.5, 3.0, 1.0, 0.6);
+            assertTrue(Math.abs(lift) <= Math.abs(ySpeed),
+                    "Lift must not overshoot ySpeed=0 at ySpeed=" + ySpeed);
         }
     }
 
     @Test
     void liftForce_outsideAngleWindow_isZero() {
         // ySpeed=-0.5, hSpeed=0.5 → pitch ≈ -45°, outside the ±30° window
-        assertEquals(0.0, GroundEffectMath.liftForce(-0.5, 0.5, 1.0, 0.015), 1e-9);
-        assertEquals(0.0, GroundEffectMath.liftForce(-1.0, 0.5, 1.0, 0.015), 1e-9);
-    }
-
-    @Test
-    void liftForce_insideAngleWindow_isPositive() {
-        // ySpeed=-0.05, hSpeed=0.5 → pitch ≈ -5.7°, well inside the window
-        assertTrue(GroundEffectMath.liftForce(-0.05, 0.5, 1.0, 0.015) > 0);
+        assertEquals(0.0, GroundEffectMath.liftForce(-0.5, 0.5, 3.0, 1.0, 0.6), 1e-9);
+        assertEquals(0.0, GroundEffectMath.liftForce(0.5, 0.5, 3.0, 1.0, 0.6), 1e-9);
     }
 
     @Test
     void liftForce_scalesWithProximity() {
-        // pitch ≈ -5.7°, well inside the window
-        double liftLow = GroundEffectMath.liftForce(-0.05, 0.5, 0.5, 0.015);
-        double liftHigh = GroundEffectMath.liftForce(-0.05, 0.5, 1.0, 0.015);
+        double liftLow = GroundEffectMath.liftForce(-0.05, 1.5, 3.0, 0.5, 0.6);
+        double liftHigh = GroundEffectMath.liftForce(-0.05, 1.5, 3.0, 1.0, 0.6);
         assertTrue(liftHigh > liftLow, "More proximity should produce more lift");
+    }
+
+    @Test
+    void liftForce_scalesWithSpeed() {
+        double liftSlow = GroundEffectMath.liftForce(-0.05, 1.0, 3.0, 1.0, 0.6);
+        double liftFast = GroundEffectMath.liftForce(-0.05, 2.0, 3.0, 1.0, 0.6);
+        assertTrue(liftFast > liftSlow, "Higher speed should produce more lift");
     }
 
     // boostDelta()

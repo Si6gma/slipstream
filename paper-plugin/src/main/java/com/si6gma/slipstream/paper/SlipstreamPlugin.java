@@ -70,10 +70,10 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bytes);
             out.writeDouble(getConfig().getDouble("effect-height", 20.0));
-            out.writeDouble(getConfig().getDouble("acceleration", 0.001));
+            out.writeDouble(getConfig().getDouble("acceleration", 0.01));
             out.writeDouble(getConfig().getDouble("max-speed", 3.0));
             out.writeDouble(getConfig().getDouble("water-spray-height", 5.0));
-            out.writeDouble(getConfig().getDouble("lift-strength", 0.015));
+            out.writeDouble(getConfig().getDouble("lift-strength", 0.6));
             out.writeDouble(getConfig().getDouble("effect-speed-threshold", 0.5));
             player.sendPluginMessage(this, CHANNEL, bytes.toByteArray());
         } catch (IOException ex) {

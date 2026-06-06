@@ -29,7 +29,7 @@ max-speed: 3.0
 water-spray-height: 5.0
 
 # Upward lift force when skimming near the surface (client boost only).
-lift-strength: 0.015
+lift-strength: 0.6
 
 # Fraction of max-speed (0.0-1.0) required before vortex particles and lift activate.
 # 0.5 means both only kick in once you're at 50% of max-speed.

@@ -11,19 +11,22 @@ public final class GroundEffectMath {
     }
 
     /**
-     * Upward lift force to apply this tick.
-     * Only active within a ±30° pitch window — outside that the player can freely dive or climb.
-     * Within the window, fades linearly to zero at the ±30° edges so transitions feel natural.
-     * Never reverses an ascent; caps at -ySpeed so it neutralises descent without bouncing.
+     * Bidirectional stabilising force that drives ySpeed toward 0 (level flight).
+     * Positive when descending (pulls up), negative when ascending (pulls down).
+     * Only active within a ±30° pitch window — steeper angles disengage it entirely
+     * so the player can intentionally climb or dive.
+     * Scales with v² like real aerodynamic lift: faster = stronger hold.
+     * liftStrength is the fraction of the ySpeed error corrected per tick [0, 1].
      */
-    public static double liftForce(double ySpeed, double hSpeed, double proximity, double liftStrength) {
-        if (ySpeed >= 0) return 0.0;
+    public static double liftForce(double ySpeed, double hSpeed, double maxSpeed,
+                                   double proximity, double liftStrength) {
         double pitchDeg = Math.toDegrees(Math.atan2(ySpeed, hSpeed));
-        if (pitchDeg < -30.0) return 0.0;
-        // 1.0 at level flight, 0.0 at the -30° edge
-        double angleFactor = 1.0 + (pitchDeg / 30.0);
-        double raw = proximity * liftStrength * angleFactor;
-        return Math.min(raw, -ySpeed);
+        if (Math.abs(pitchDeg) > 30.0) return 0.0;
+        double angleFactor = 1.0 - (Math.abs(pitchDeg) / 30.0);
+        double speedFactor = (hSpeed / maxSpeed) * (hSpeed / maxSpeed);
+        // Restoring force toward ySpeed=0, capped so it never overshoots to the other side
+        double correction = -ySpeed * angleFactor * speedFactor * proximity * liftStrength;
+        return ySpeed < 0 ? Math.min(correction, -ySpeed) : Math.max(correction, -ySpeed);
     }
 
     /**
