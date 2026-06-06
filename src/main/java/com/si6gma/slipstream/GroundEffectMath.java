@@ -44,9 +44,9 @@ public final class GroundEffectMath {
     if (Math.abs(pitchDeg) > 30.0) return 0.0;
     double normalized = Math.min(hSpeed / maxSpeed, 1.0);
     // Ease-out curve: lift stays nearly full at high speed and only tapers once the player gets
-    // slow. Matches the "logarithmic" feel of being basically maxed out until you drop below the
-    // comfortable cruise range.
-    double speedRatio = 1.0 - (1.0 - normalized) * (1.0 - normalized);
+    // slow. Exponent tuned to 1.5 so the taper is a bit harsher than the quadratic default while
+    // still feeling maxed out during normal cruise.
+    double speedRatio = 1.0 - Math.pow(1.0 - normalized, 1.5);
     double angleFactor = 1.0 - (Math.abs(pitchDeg) / 30.0);
     // Anti-gravity: offsets elytra's ~0.02/tick residual gravity at level flight.
     // Scaled by speed so low-speed flight can't coast indefinitely; at max speed the player gets
