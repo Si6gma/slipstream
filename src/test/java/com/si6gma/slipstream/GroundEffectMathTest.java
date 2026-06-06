@@ -19,8 +19,18 @@ class GroundEffectMathTest {
   }
 
   @Test
-  void proximity_atHalfHeight_isOneFourth() {
-    assertEquals(0.25, GroundEffectMath.proximity(10, 20), 1e-9);
+  void proximity_withinBuffer_isOne() {
+    // 0–3 blocks above surface should all return full proximity
+    assertEquals(1.0, GroundEffectMath.proximity(0, 20), 1e-9);
+    assertEquals(1.0, GroundEffectMath.proximity(1, 20), 1e-9);
+    assertEquals(1.0, GroundEffectMath.proximity(3, 20), 1e-9);
+  }
+
+  @Test
+  void proximity_aboveBuffer_fallsOff() {
+    // Just above the buffer the value should be less than 1 and greater than 0
+    double p = GroundEffectMath.proximity(4, 20);
+    assertTrue(p > 0.0 && p < 1.0, "proximity just above buffer should be between 0 and 1");
   }
 
   @Test
@@ -37,26 +47,26 @@ class GroundEffectMathTest {
 
   @Test
   void liftForce_whenHorizontal_isZero() {
-    assertEquals(0.0, GroundEffectMath.liftForce(0.0, 1.5, 3.0, 1.0, 0.6), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(0.0, 1.5, 1.0, 0.6), 1e-9);
   }
 
   @Test
   void liftForce_whenDescending_isPositive() {
     // ySpeed=-0.05, hSpeed=1.5 → pitch ≈ -1.9°, well inside the window
-    assertTrue(GroundEffectMath.liftForce(-0.05, 1.5, 3.0, 1.0, 0.6) > 0);
+    assertTrue(GroundEffectMath.liftForce(-0.05, 1.5, 1.0, 0.6) > 0);
   }
 
   @Test
   void liftForce_whenAscending_isNegative() {
     // Bidirectional: pulls down when drifting up inside the window
-    assertTrue(GroundEffectMath.liftForce(0.05, 1.5, 3.0, 1.0, 0.6) < 0);
+    assertTrue(GroundEffectMath.liftForce(0.05, 1.5, 1.0, 0.6) < 0);
   }
 
   @Test
   void liftForce_neverOvershoots() {
     // Correction must not push ySpeed past zero in either direction
     for (double ySpeed : new double[] {-0.01, -0.05, -0.1, 0.01, 0.05, 0.1}) {
-      double lift = GroundEffectMath.liftForce(ySpeed, 1.5, 3.0, 1.0, 0.6);
+      double lift = GroundEffectMath.liftForce(ySpeed, 1.5, 1.0, 0.6);
       assertTrue(
           Math.abs(lift) <= Math.abs(ySpeed),
           "Lift must not overshoot ySpeed=0 at ySpeed=" + ySpeed);
@@ -66,22 +76,29 @@ class GroundEffectMathTest {
   @Test
   void liftForce_outsideAngleWindow_isZero() {
     // ySpeed=-0.5, hSpeed=0.5 → pitch ≈ -45°, outside the ±30° window
-    assertEquals(0.0, GroundEffectMath.liftForce(-0.5, 0.5, 3.0, 1.0, 0.6), 1e-9);
-    assertEquals(0.0, GroundEffectMath.liftForce(0.5, 0.5, 3.0, 1.0, 0.6), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.5, 0.5, 1.0, 0.6), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(0.5, 0.5, 1.0, 0.6), 1e-9);
   }
 
   @Test
   void liftForce_scalesWithProximity() {
-    double liftLow = GroundEffectMath.liftForce(-0.05, 1.5, 3.0, 0.5, 0.6);
-    double liftHigh = GroundEffectMath.liftForce(-0.05, 1.5, 3.0, 1.0, 0.6);
+    double liftLow = GroundEffectMath.liftForce(-0.05, 1.5, 0.5, 0.6);
+    double liftHigh = GroundEffectMath.liftForce(-0.05, 1.5, 1.0, 0.6);
     assertTrue(liftHigh > liftLow, "More proximity should produce more lift");
   }
 
   @Test
-  void liftForce_scalesWithSpeed() {
-    double liftSlow = GroundEffectMath.liftForce(-0.05, 1.0, 3.0, 1.0, 0.6);
-    double liftFast = GroundEffectMath.liftForce(-0.05, 2.0, 3.0, 1.0, 0.6);
-    assertTrue(liftFast > liftSlow, "Higher speed should produce more lift");
+  void liftForce_antiGravityHoldsLevelFlight() {
+    // Simulates one tick: vanilla applies ~-0.02 gravity, then our lift runs.
+    // Starting from ySpeed=0, after gravity ySpeed=-0.02; lift should bring it back to 0.
+    double afterGravity = -0.02;
+    double lift = GroundEffectMath.liftForce(afterGravity, 1.5, 1.0, 0.6);
+    double result = afterGravity + lift;
+    assertEquals(
+        0.0,
+        result,
+        1e-9,
+        "Anti-gravity should fully cancel elytra's residual gravity at level flight");
   }
 
   // boostDelta()

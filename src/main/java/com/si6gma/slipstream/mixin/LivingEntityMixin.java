@@ -103,9 +103,7 @@ public class LivingEntityMixin {
           }
         }
         if (hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
-          double lift =
-              GroundEffectMath.liftForce(
-                  boosted.y, hSpeed, cfg.maxSpeedBlocksPerTick, proximity, cfg.liftStrength);
+          double lift = GroundEffectMath.liftForce(boosted.y, hSpeed, proximity, cfg.liftStrength);
           boosted = boosted.add(0, lift, 0);
         }
         player.setDeltaMovement(boosted);
