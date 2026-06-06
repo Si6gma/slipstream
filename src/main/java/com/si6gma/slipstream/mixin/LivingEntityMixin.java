@@ -102,7 +102,12 @@ public class LivingEntityMixin {
             boosted = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
           }
         }
-        if (hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
+        // Lift gate: speed threshold AND look pitch within ±30°.
+        // Look-direction is the primary intent signal — looking steeper than 30° means
+        // the player wants to dive or climb freely, so lift disengages immediately
+        // rather than fighting the velocity change.
+        if (hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick
+            && Math.abs(player.getXRot()) <= 30.0f) {
           double lift = GroundEffectMath.liftForce(boosted.y, hSpeed, proximity, cfg.liftStrength);
           boosted = boosted.add(0, lift, 0);
         }
