@@ -11,6 +11,10 @@
 
 override-clients: true
 
+# Set to false to temporarily disable the ground effect for all players.
+# Persists across restarts.
+effect-enabled: true
+
 # Worlds where ground effect particles and client override are disabled.
 # Use the exact world folder name (e.g. world_nether, world_the_end).
 disabled-worlds: []

@@ -15,7 +15,7 @@ public class SlipstreamClient implements ClientModInitializer {
   @Override
   public void onInitializeClient() {
     ParticleProviderRegistry.getInstance()
-        .register(ModParticles.WING_VORTEX, WingVortexParticle.Factory::new);
+        .register(ModParticles.wingVortex(), WingVortexParticle.Factory::new);
 
     PayloadTypeRegistry.clientboundPlay()
         .register(ServerConfigPayload.TYPE, ServerConfigPayload.CODEC);

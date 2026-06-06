@@ -105,23 +105,33 @@ class GroundEffectMathTest {
 
   @Test
   void boostDelta_whenAtMaxSpeed_isZero() {
-    assertEquals(0.0, GroundEffectMath.boostDelta(3.0, 1.0, 0.001, 3.0), 1e-9);
+    assertEquals(0.0, GroundEffectMath.boostDelta(3.0, 0.0, 1.0, 0.001, 3.0), 1e-9);
   }
 
   @Test
   void boostDelta_whenAboveMaxSpeed_isZero() {
-    assertEquals(0.0, GroundEffectMath.boostDelta(4.0, 1.0, 0.001, 3.0), 1e-9);
+    assertEquals(0.0, GroundEffectMath.boostDelta(4.0, 0.0, 1.0, 0.001, 3.0), 1e-9);
+  }
+
+  @Test
+  void boostDelta_whenAscendingBeyondDeadBand_isZero() {
+    assertEquals(0.0, GroundEffectMath.boostDelta(1.0, 0.06, 1.0, 0.001, 3.0), 1e-9);
+  }
+
+  @Test
+  void boostDelta_withinDeadBand_isNonZero() {
+    assertTrue(GroundEffectMath.boostDelta(1.0, 0.04, 1.0, 0.001, 3.0) > 0.0);
   }
 
   @Test
   void boostDelta_scalesWithProximity() {
-    double low = GroundEffectMath.boostDelta(0, 0.5, 0.001, 3.0);
-    double high = GroundEffectMath.boostDelta(0, 1.0, 0.001, 3.0);
+    double low = GroundEffectMath.boostDelta(0, 0.0, 0.5, 0.001, 3.0);
+    double high = GroundEffectMath.boostDelta(0, 0.0, 1.0, 0.001, 3.0);
     assertEquals(2 * low, high, 1e-9);
   }
 
   @Test
   void boostDelta_isNonNegative() {
-    assertTrue(GroundEffectMath.boostDelta(0, 0.8, 0.001, 3.0) >= 0);
+    assertTrue(GroundEffectMath.boostDelta(0, 0.0, 0.8, 0.001, 3.0) >= 0);
   }
 }

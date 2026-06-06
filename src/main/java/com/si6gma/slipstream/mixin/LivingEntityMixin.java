@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
@@ -27,10 +28,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LivingEntity.class)
 public class LivingEntityMixin {
 
-  // Per-entity raycast cache. Instance fields are GC'd with the entity no
-  // explicit
-  // cleanup needed. Dead entities can't call travel(), so stale cache is never
-  // read.
+  // Per-entity raycast cache. Instance fields are GC'd with the entity — no
+  // explicit cleanup needed. Dead entities can't call travel(), so stale cache is never read.
   @Unique private BlockHitResult ege$cachedHit;
   @Unique private double ege$cacheX, ege$cacheY, ege$cacheZ;
   @Unique private int ege$cacheAge;
@@ -39,6 +38,7 @@ public class LivingEntityMixin {
   private void applyGroundEffect(Vec3 travelVector, CallbackInfo ci) {
     LivingEntity self = (LivingEntity) (Object) this;
     if (!self.isFallFlying()) return;
+    if (self.isUnderWater() || self.isInLava()) return;
 
     Vec3 velocity = self.getDeltaMovement();
     double hSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
@@ -51,14 +51,15 @@ public class LivingEntityMixin {
     // On client: returns server override if one was received, else local config.
     // On server: active is always null, so always returns local config.
     SlipstreamConfig cfg = ServerConfigOverride.get();
+    double maxSpeedSq = cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick;
+    double speedGate = cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick;
 
     // O(1) heightmap pre-check bail before any raycast when clearly too high
     int heightmapY =
         self.level().getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(pos.x), Mth.floor(pos.z));
     if (pos.y - heightmapY > cfg.effectHeightBlocks) return;
 
-    // Raycast cache reuse hit until player moves >1 block or cache is >3 ticks
-    // old
+    // Raycast cache reuse: skip raycast if player moved <1 block and cache is ≤3 ticks old
     ege$cacheAge++;
     double dx = pos.x - ege$cacheX;
     double dz = pos.z - ege$cacheZ;
@@ -91,27 +92,34 @@ public class LivingEntityMixin {
       if (!(self instanceof Player player) || !player.isLocalPlayer()) return;
 
       if (ServerConfigOverride.isBoostAllowed()) {
-        Vec3 boosted = velocity;
-        if (hSpeedSq < cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
+        Vec3 result = velocity;
+        if (hSpeedSq < maxSpeedSq) {
           double delta =
               GroundEffectMath.boostDelta(
-                  hSpeed, proximity, cfg.accelerationPerTick, cfg.maxSpeedBlocksPerTick);
-          boosted = velocity.add(travelDir.scale(delta));
-          double boostedHSq = boosted.x * boosted.x + boosted.z * boosted.z;
-          if (boostedHSq > cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
-            boosted = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
+                  hSpeed,
+                  velocity.y,
+                  proximity,
+                  cfg.accelerationPerTick,
+                  cfg.maxSpeedBlocksPerTick);
+          if (delta > 0) {
+            result = velocity.add(travelDir.scale(delta));
+            double newHSpeedSq = result.x * result.x + result.z * result.z;
+            if (newHSpeedSq > maxSpeedSq) {
+              result = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
+            }
           }
         }
         // Lift gate: speed threshold AND look pitch within ±30°.
         // Look-direction is the primary intent signal — looking steeper than 30° means
         // the player wants to dive or climb freely, so lift disengages immediately
         // rather than fighting the velocity change.
-        if (hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick
-            && Math.abs(player.getXRot()) <= 30.0f) {
-          double lift = GroundEffectMath.liftForce(boosted.y, hSpeed, proximity, cfg.liftStrength);
-          boosted = boosted.add(0, lift, 0);
+        double resultHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);
+        if (resultHSpeed >= speedGate && Math.abs(player.getXRot()) <= 30.0f) {
+          double lift =
+              GroundEffectMath.liftForce(result.y, resultHSpeed, proximity, cfg.liftStrength);
+          if (lift != 0.0) result = result.add(0, lift, 0);
         }
-        player.setDeltaMovement(boosted);
+        if (result != velocity) player.setDeltaMovement(result);
       }
 
     } else {
@@ -119,18 +127,21 @@ public class LivingEntityMixin {
 
       ServerLevel level = player.level();
       Vec3 right = new Vec3(travelDir.z, 0, -travelDir.x);
-      var random = player.getRandom();
+      RandomSource random = player.getRandom();
       double surfaceY = surfaceHit.getLocation().y;
       int tick = player.tickCount;
 
+      BlockState surfaceBlock = level.getBlockState(surfaceHit.getBlockPos());
+      boolean isWater = surfaceBlock.getFluidState().is(FluidTags.WATER);
+
       // Vortex + contact burst: every 2 ticks (lightweight, keep dense trail)
       if (tick % 2 == 0) {
-        if (ModParticles.WING_VORTEX != null
-            && hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
+        var wingVortex = ModParticles.wingVortex();
+        if (wingVortex != null && hSpeed >= speedGate) {
           double wingOffset = 1.2;
           double vortexOut = 0.12 * proximity;
           level.sendParticles(
-              ModParticles.WING_VORTEX,
+              wingVortex,
               pos.x + right.x * wingOffset,
               pos.y + 0.3,
               pos.z + right.z * wingOffset,
@@ -140,7 +151,7 @@ public class LivingEntityMixin {
               right.z * vortexOut - travelDir.z * 0.03,
               0);
           level.sendParticles(
-              ModParticles.WING_VORTEX,
+              wingVortex,
               pos.x - right.x * wingOffset,
               pos.y + 0.3,
               pos.z - right.z * wingOffset,
@@ -150,9 +161,6 @@ public class LivingEntityMixin {
               -right.z * vortexOut - travelDir.z * 0.03,
               0);
         }
-
-        BlockState surfaceBlock = level.getBlockState(surfaceHit.getBlockPos());
-        boolean isWater = surfaceBlock.getFluidState().is(FluidTags.WATER);
 
         if (isWater && distToSurface <= cfg.waterSprayHeightBlocks) {
           double waterProximity = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
@@ -181,115 +189,113 @@ public class LivingEntityMixin {
       }
 
       // Heavier spray/dust loops: every 3 ticks
-      if (tick % 3 != 0) return;
+      if (tick % 3 == 0) {
+        if (isWater && distToSurface <= cfg.waterSprayHeightBlocks) {
+          double waterProximity = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
 
-      BlockState surfaceBlock = level.getBlockState(surfaceHit.getBlockPos());
-      boolean isWater = surfaceBlock.getFluidState().is(FluidTags.WATER);
-
-      if (isWater && distToSurface <= cfg.waterSprayHeightBlocks) {
-        double waterProximity = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
-
-        // Wingtip spray arcs (capped at 8/side)
-        int sprayCount = 2 + (int) (waterProximity * hSpeed * 6);
-        for (int i = 0; i < Math.min(sprayCount, 8); i++) {
-          double wingPos = 0.8 + random.nextDouble() * 0.7;
-          double spawnJitter = (random.nextDouble() - 0.5) * 0.3;
-          double outward = (0.3 + random.nextDouble() * 0.3) * waterProximity;
-          double forward = hSpeed * (0.08 + random.nextDouble() * 0.08);
-          double up = (0.9 + random.nextDouble() * 1.2) * waterProximity;
-          level.sendParticles(
-              ParticleTypes.SPLASH,
-              pos.x + right.x * wingPos + travelDir.x * spawnJitter,
-              surfaceY + 0.05,
-              pos.z + right.z * wingPos + travelDir.z * spawnJitter,
-              0,
-              right.x * outward + travelDir.x * forward,
-              up,
-              right.z * outward + travelDir.z * forward,
-              1.0);
-          level.sendParticles(
-              ParticleTypes.SPLASH,
-              pos.x - right.x * wingPos + travelDir.x * spawnJitter,
-              surfaceY + 0.05,
-              pos.z - right.z * wingPos + travelDir.z * spawnJitter,
-              0,
-              -right.x * outward + travelDir.x * forward,
-              up,
-              -right.z * outward + travelDir.z * forward,
-              1.0);
-        }
-
-        // Wake trail (capped at 5)
-        int wakeCount = 1 + (int) (waterProximity * hSpeed * 3);
-        for (int i = 0; i < Math.min(wakeCount, 5); i++) {
-          double trailBack = 0.3 + random.nextDouble() * 2.0;
-          double trailSide = (random.nextDouble() - 0.5) * 0.8;
-          level.sendParticles(
-              ParticleTypes.SPLASH,
-              pos.x - travelDir.x * trailBack + right.x * trailSide,
-              surfaceY + 0.05,
-              pos.z - travelDir.z * trailBack + right.z * trailSide,
-              0,
-              (random.nextDouble() - 0.5) * 0.04,
-              0.08 + random.nextDouble() * 0.08,
-              (random.nextDouble() - 0.5) * 0.04,
-              1.0);
-        }
-
-        // Fine mist
-        if (waterProximity > 0.5 && random.nextInt(3) == 0) {
-          level.sendParticles(
-              ParticleTypes.FALLING_WATER,
-              pos.x
-                  + travelDir.x * random.nextDouble() * 1.5
-                  + right.x * (random.nextDouble() - 0.5) * 1.5,
-              surfaceY + 0.15 + random.nextDouble() * 0.4,
-              pos.z
-                  + travelDir.z * random.nextDouble() * 1.5
-                  + right.z * (random.nextDouble() - 0.5) * 1.5,
-              0,
-              travelDir.x * 0.02,
-              0.02,
-              travelDir.z * 0.02,
-              1.0);
-        }
-
-      } else if (!isWater && !surfaceBlock.isAir()) {
-        // Ground dust (capped at 4)
-        int dustCount = 1 + (int) (proximity * hSpeed * 1.5);
-        for (int i = 0; i < Math.min(dustCount, 4); i++) {
-          double scatterX = (random.nextDouble() - 0.5) * 2.5;
-          double scatterZ = (random.nextDouble() - 0.5) * 2.5;
-          level.sendParticles(
-              new BlockParticleOption(ParticleTypes.BLOCK, surfaceBlock),
-              pos.x + scatterX,
-              surfaceY + 0.1,
-              pos.z + scatterZ,
-              0,
-              scatterX * 0.04,
-              0.05 + random.nextDouble() * 0.08,
-              scatterZ * 0.04,
-              0);
-        }
-
-        // POOF puffs (capped at 2, only when close)
-        if (proximity > 0.3) {
-          int puffCount = 1 + (int) (proximity * hSpeed * 0.5);
-          for (int i = 0; i < Math.min(puffCount, 2); i++) {
+          // Wingtip spray arcs (capped at 8/side)
+          int sprayCount = 2 + (int) (waterProximity * hSpeed * 6);
+          for (int i = 0; i < Math.min(sprayCount, 8); i++) {
+            double wingPos = 0.8 + random.nextDouble() * 0.7;
+            double spawnJitter = (random.nextDouble() - 0.5) * 0.3;
+            double outward = (0.3 + random.nextDouble() * 0.3) * waterProximity;
+            double forward = hSpeed * (0.08 + random.nextDouble() * 0.08);
+            double up = (0.9 + random.nextDouble() * 1.2) * waterProximity;
             level.sendParticles(
-                ParticleTypes.POOF,
-                pos.x
-                    - travelDir.x * (0.5 + random.nextDouble() * 1.5)
-                    + right.x * (random.nextDouble() - 0.5),
-                surfaceY + 0.2 + random.nextDouble() * 0.3,
-                pos.z
-                    - travelDir.z * (0.5 + random.nextDouble() * 1.5)
-                    + right.z * (random.nextDouble() - 0.5),
+                ParticleTypes.SPLASH,
+                pos.x + right.x * wingPos + travelDir.x * spawnJitter,
+                surfaceY + 0.05,
+                pos.z + right.z * wingPos + travelDir.z * spawnJitter,
                 0,
-                (random.nextDouble() - 0.5) * 0.02,
-                0.03 + random.nextDouble() * 0.03,
-                (random.nextDouble() - 0.5) * 0.02,
+                right.x * outward + travelDir.x * forward,
+                up,
+                right.z * outward + travelDir.z * forward,
                 1.0);
+            level.sendParticles(
+                ParticleTypes.SPLASH,
+                pos.x - right.x * wingPos + travelDir.x * spawnJitter,
+                surfaceY + 0.05,
+                pos.z - right.z * wingPos + travelDir.z * spawnJitter,
+                0,
+                -right.x * outward + travelDir.x * forward,
+                up,
+                -right.z * outward + travelDir.z * forward,
+                1.0);
+          }
+
+          // Wake trail (capped at 5)
+          int wakeCount = 1 + (int) (waterProximity * hSpeed * 3);
+          for (int i = 0; i < Math.min(wakeCount, 5); i++) {
+            double trailBack = 0.3 + random.nextDouble() * 2.0;
+            double trailSide = (random.nextDouble() - 0.5) * 0.8;
+            level.sendParticles(
+                ParticleTypes.SPLASH,
+                pos.x - travelDir.x * trailBack + right.x * trailSide,
+                surfaceY + 0.05,
+                pos.z - travelDir.z * trailBack + right.z * trailSide,
+                0,
+                (random.nextDouble() - 0.5) * 0.04,
+                0.08 + random.nextDouble() * 0.08,
+                (random.nextDouble() - 0.5) * 0.04,
+                1.0);
+          }
+
+          // Fine mist
+          if (waterProximity > 0.5 && random.nextInt(3) == 0) {
+            level.sendParticles(
+                ParticleTypes.FALLING_WATER,
+                pos.x
+                    + travelDir.x * random.nextDouble() * 1.5
+                    + right.x * (random.nextDouble() - 0.5) * 1.5,
+                surfaceY + 0.15 + random.nextDouble() * 0.4,
+                pos.z
+                    + travelDir.z * random.nextDouble() * 1.5
+                    + right.z * (random.nextDouble() - 0.5) * 1.5,
+                0,
+                travelDir.x * 0.02,
+                0.02,
+                travelDir.z * 0.02,
+                1.0);
+          }
+
+        } else if (!isWater && !surfaceBlock.isAir()) {
+          // Ground dust (capped at 4)
+          int dustCount = 1 + (int) (proximity * hSpeed * 1.5);
+          var dustParticle = new BlockParticleOption(ParticleTypes.BLOCK, surfaceBlock);
+          for (int i = 0; i < Math.min(dustCount, 4); i++) {
+            double scatterX = (random.nextDouble() - 0.5) * 2.5;
+            double scatterZ = (random.nextDouble() - 0.5) * 2.5;
+            level.sendParticles(
+                dustParticle,
+                pos.x + scatterX,
+                surfaceY + 0.1,
+                pos.z + scatterZ,
+                0,
+                scatterX * 0.04,
+                0.05 + random.nextDouble() * 0.08,
+                scatterZ * 0.04,
+                0);
+          }
+
+          // POOF puffs (capped at 2, only when close)
+          if (proximity > 0.3) {
+            int puffCount = 1 + (int) (proximity * hSpeed * 0.5);
+            for (int i = 0; i < Math.min(puffCount, 2); i++) {
+              level.sendParticles(
+                  ParticleTypes.POOF,
+                  pos.x
+                      - travelDir.x * (0.5 + random.nextDouble() * 1.5)
+                      + right.x * (random.nextDouble() - 0.5),
+                  surfaceY + 0.2 + random.nextDouble() * 0.3,
+                  pos.z
+                      - travelDir.z * (0.5 + random.nextDouble() * 1.5)
+                      + right.z * (random.nextDouble() - 0.5),
+                  0,
+                  (random.nextDouble() - 0.5) * 0.02,
+                  0.03 + random.nextDouble() * 0.03,
+                  (random.nextDouble() - 0.5) * 0.02,
+                  1.0);
+            }
           }
         }
       }

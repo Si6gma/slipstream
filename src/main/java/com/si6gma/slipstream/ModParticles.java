@@ -8,7 +8,11 @@ import net.minecraft.resources.Identifier;
 
 public class ModParticles {
 
-  public static SimpleParticleType WING_VORTEX;
+  private static SimpleParticleType WING_VORTEX;
+
+  public static SimpleParticleType wingVortex() {
+    return WING_VORTEX;
+  }
 
   @SuppressWarnings("null")
   public static void register() {

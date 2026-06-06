@@ -17,8 +17,11 @@ class GroundEffectMathTest {
   }
 
   @Test
-  void proximity_atHalfHeight_isOneFourth() {
-    assertEquals(0.25, GroundEffectMath.proximity(10, 20), 1e-9);
+  void proximity_withinBuffer_isOne() {
+    // 0–3 blocks above surface should all return full proximity (flat zone)
+    assertEquals(1.0, GroundEffectMath.proximity(0, 20), 1e-9);
+    assertEquals(1.0, GroundEffectMath.proximity(1, 20), 1e-9);
+    assertEquals(1.0, GroundEffectMath.proximity(3, 20), 1e-9);
   }
 
   @Test

@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -27,6 +26,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   @Override
   public void onEnable() {
     saveDefaultConfig();
+    effectEnabled = getConfig().getBoolean("effect-enabled", true);
     task = new GroundEffectTask(this);
     task.runTaskTimer(this, 0L, 1L);
     getServer().getPluginManager().registerEvents(this, this);
@@ -56,8 +56,11 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
         .runTaskLater(
             this,
             () -> {
-              if (effectEnabled) sendConfig(e.getPlayer());
-              else sendDisabledConfig(e.getPlayer());
+              Player player = e.getPlayer();
+              if (getConfig().getStringList("disabled-worlds").contains(player.getWorld().getName()))
+                return;
+              if (effectEnabled) sendConfig(player);
+              else sendDisabledConfig(player);
             },
             20L);
   }
@@ -80,6 +83,8 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
             sender.sendMessage("§eSlipstream is already enabled.");
           } else {
             effectEnabled = true;
+            getConfig().set("effect-enabled", true);
+            saveConfig();
             broadcastConfig();
             sender.sendMessage("§aSlipstream ground effect enabled.");
           }
@@ -90,7 +95,12 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
             sender.sendMessage("§eSlipstream is already disabled.");
           } else {
             effectEnabled = false;
-            for (Player p : Bukkit.getOnlinePlayers()) sendDisabledConfig(p);
+            getConfig().set("effect-enabled", false);
+            saveConfig();
+            List<String> disabled = getConfig().getStringList("disabled-worlds");
+            for (Player p : Bukkit.getOnlinePlayers()) {
+              if (!disabled.contains(p.getWorld().getName())) sendDisabledConfig(p);
+            }
             sender.sendMessage("§cSlipstream ground effect disabled.");
           }
           return true;
@@ -117,23 +127,37 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     if (args.length == 1) {
       return SUBCOMMANDS.stream()
           .filter(s -> s.startsWith(args[0].toLowerCase()))
-          .collect(Collectors.toList());
+          .toList();
     }
     return List.of();
+  }
+
+  // 6 doubles × 8 bytes = 48 bytes; pre-sized to avoid internal ByteArrayOutputStream resize.
+  // Field order must match ServerConfigOverride.apply() on the Fabric side.
+  private static byte[] serializePayload(
+      double effectHeight, double acceleration, double maxSpeed,
+      double waterSprayHeight, double liftStrength, double speedThreshold) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream(48);
+    DataOutputStream out = new DataOutputStream(bytes);
+    out.writeDouble(effectHeight);
+    out.writeDouble(acceleration);
+    out.writeDouble(maxSpeed);
+    out.writeDouble(waterSprayHeight);
+    out.writeDouble(liftStrength);
+    out.writeDouble(speedThreshold);
+    return bytes.toByteArray();
   }
 
   void sendConfig(Player player) {
     if (!player.isOnline()) return;
     try {
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-      DataOutputStream out = new DataOutputStream(bytes);
-      out.writeDouble(getConfig().getDouble("effect-height", 20.0));
-      out.writeDouble(getConfig().getDouble("acceleration", 0.013));
-      out.writeDouble(getConfig().getDouble("max-speed", 1.5));
-      out.writeDouble(getConfig().getDouble("water-spray-height", 5.0));
-      out.writeDouble(getConfig().getDouble("lift-strength", 0.6));
-      out.writeDouble(getConfig().getDouble("effect-speed-threshold", 0.3));
-      player.sendPluginMessage(this, CHANNEL, bytes.toByteArray());
+      player.sendPluginMessage(this, CHANNEL, serializePayload(
+          getConfig().getDouble("effect-height", 20.0),
+          getConfig().getDouble("acceleration", 0.013),
+          getConfig().getDouble("max-speed", 1.5),
+          getConfig().getDouble("water-spray-height", 5.0),
+          getConfig().getDouble("lift-strength", 0.6),
+          getConfig().getDouble("effect-speed-threshold", 0.3)));
     } catch (IOException ex) {
       getLogger().warning("Failed to send config to " + player.getName() + ": " + ex.getMessage());
     }
@@ -146,15 +170,13 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   private void sendDisabledConfig(Player player) {
     if (!player.isOnline()) return;
     try {
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-      DataOutputStream out = new DataOutputStream(bytes);
-      out.writeDouble(getConfig().getDouble("effect-height", 20.0));
-      out.writeDouble(0.0); // acceleration — no boost
-      out.writeDouble(getConfig().getDouble("max-speed", 1.5));
-      out.writeDouble(getConfig().getDouble("water-spray-height", 5.0));
-      out.writeDouble(0.0); // liftStrength=0 — kills lift AND anti-gravity in liftForce()
-      out.writeDouble(1.0); // effectSpeedThreshold — threshold == maxSpeed, belt-and-suspenders
-      player.sendPluginMessage(this, CHANNEL, bytes.toByteArray());
+      player.sendPluginMessage(this, CHANNEL, serializePayload(
+          getConfig().getDouble("effect-height", 20.0),
+          0.0,
+          getConfig().getDouble("max-speed", 1.5),
+          getConfig().getDouble("water-spray-height", 5.0),
+          0.0,
+          1.0));
     } catch (IOException ex) {
       getLogger()
           .warning("Failed to send disabled config to " + player.getName() + ": " + ex.getMessage());
@@ -164,7 +186,31 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   public void broadcastConfig() {
     reloadConfig();
     if (task != null) task.reload();
-    for (Player p : Bukkit.getOnlinePlayers()) sendConfig(p);
+    List<String> disabled = getConfig().getStringList("disabled-worlds");
+    try {
+      // Build the payload once — all players in the same state receive the same bytes.
+      byte[] payload = effectEnabled
+          ? serializePayload(
+              getConfig().getDouble("effect-height", 20.0),
+              getConfig().getDouble("acceleration", 0.013),
+              getConfig().getDouble("max-speed", 1.5),
+              getConfig().getDouble("water-spray-height", 5.0),
+              getConfig().getDouble("lift-strength", 0.6),
+              getConfig().getDouble("effect-speed-threshold", 0.3))
+          : serializePayload(
+              getConfig().getDouble("effect-height", 20.0),
+              0.0,
+              getConfig().getDouble("max-speed", 1.5),
+              getConfig().getDouble("water-spray-height", 5.0),
+              0.0,
+              1.0);
+      for (Player p : Bukkit.getOnlinePlayers()) {
+        if (!disabled.contains(p.getWorld().getName()) && p.isOnline())
+          p.sendPluginMessage(this, CHANNEL, payload);
+      }
+    } catch (IOException ex) {
+      getLogger().warning("Failed to serialize config for broadcast: " + ex.getMessage());
+    }
     getLogger().info("Config rebroadcast to " + Bukkit.getOnlinePlayers().size() + " players.");
   }
 }
