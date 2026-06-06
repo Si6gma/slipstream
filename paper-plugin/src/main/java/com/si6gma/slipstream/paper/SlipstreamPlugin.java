@@ -67,6 +67,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener {
     void sendConfig(Player player) {
         if (!player.isOnline()) return;
         try {
+            getLogger().info("Sending config to " + player.getName());
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bytes);
             out.writeDouble(getConfig().getDouble("effect-height", 20.0));

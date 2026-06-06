@@ -27,6 +27,10 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     private final SlipstreamPlugin plugin;
     private double effectHeight;
     private double waterSprayHeight;
+    private double effectSpeedThreshold;
+    private double maxSpeed;
+    private double acceleration;
+    private double liftStrength;
     private Set<String> disabledWorlds;
     private final Random random = new Random();
 
@@ -44,6 +48,8 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     public void reload() {
         effectHeight = plugin.getConfig().getDouble("effect-height", 20.0);
         waterSprayHeight = plugin.getConfig().getDouble("water-spray-height", 5.0);
+        effectSpeedThreshold = plugin.getConfig().getDouble("effect-speed-threshold", 0.2);
+        maxSpeed = plugin.getConfig().getDouble("max-speed", 3.0);
         disabledWorlds = new HashSet<>(plugin.getConfig().getStringList("disabled-worlds"));
     }
 
@@ -133,17 +139,20 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
                 || hitBlock.getType() == Material.TALL_SEAGRASS
                 || (hitData instanceof Waterlogged wl && wl.isWaterlogged());
 
+        boolean aboveThreshold = hSpeed >= effectSpeedThreshold * maxSpeed;
+
         // Vortex + contact burst: every 2 ticks
         if (playerTick % 2 == 0) {
-            double wingOffset = 1.2;
-            double vortexOut = 0.12 * proximity;
-
-            world.spawnParticle(Particle.CLOUD,
-                    new Location(world, pos.getX() + rx * wingOffset, pos.getY() + 0.3, pos.getZ() + rz * wingOffset),
-                    0, rx * vortexOut - tx * 0.03, 0.01, rz * vortexOut - tz * 0.03, 0);
-            world.spawnParticle(Particle.CLOUD,
-                    new Location(world, pos.getX() - rx * wingOffset, pos.getY() + 0.3, pos.getZ() - rz * wingOffset),
-                    0, -rx * vortexOut - tx * 0.03, 0.01, -rz * vortexOut - tz * 0.03, 0);
+            if (aboveThreshold) {
+                double wingOffset = 1.2;
+                double vortexOut = 0.12 * proximity;
+                world.spawnParticle(Particle.CLOUD,
+                        new Location(world, pos.getX() + rx * wingOffset, pos.getY() + 0.3, pos.getZ() + rz * wingOffset),
+                        0, rx * vortexOut - tx * 0.03, 0.01, rz * vortexOut - tz * 0.03, 0);
+                world.spawnParticle(Particle.CLOUD,
+                        new Location(world, pos.getX() - rx * wingOffset, pos.getY() + 0.3, pos.getZ() - rz * wingOffset),
+                        0, -rx * vortexOut - tx * 0.03, 0.01, -rz * vortexOut - tz * 0.03, 0);
+            }
 
             if (isWater && distToSurface <= waterSprayHeight) {
                 double waterProx = 1.0 - (distToSurface / waterSprayHeight);
