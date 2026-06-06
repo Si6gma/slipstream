@@ -65,6 +65,7 @@ jobs:
         with:
           files: |
             build/libs/slipstream-*.jar
+            !build/libs/slipstream-*-sources.jar
             paper-plugin/build/libs/slipstream-paper-*.jar
           body: ${{ steps.changelog.outputs.changelog }}
           fail_on_unmatched_files: true
