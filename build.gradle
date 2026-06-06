@@ -1,7 +1,12 @@
 plugins {
+	id 'checkstyle'
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 	id 'maven-publish'
 	id 'me.modmuss50.mod-publish-plugin' version '2.0.0-beta.1'
+}
+
+checkstyle {
+	toolVersion = '10.21.4'
 }
 
 version = project.mod_version

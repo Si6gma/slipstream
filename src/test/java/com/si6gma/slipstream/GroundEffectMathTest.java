@@ -1,6 +1,7 @@
 package com.si6gma.slipstream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -133,5 +134,27 @@ class GroundEffectMathTest {
   @Test
   void boostDelta_isNonNegative() {
     assertTrue(GroundEffectMath.boostDelta(0, 0.0, 0.8, 0.001, 3.0) >= 0);
+  }
+
+  @Test
+  void boostDelta_atDeadBandBoundary_isNonZero() {
+    // ySpeed > 0.05 gates the boost; at exactly 0.05 the gate is still open
+    assertTrue(GroundEffectMath.boostDelta(1.0, 0.05, 1.0, 0.001, 3.0) > 0.0);
+  }
+
+  // proximity() — edge cases
+
+  @Test
+  void proximity_tinyEffectHeight_bufferCollapsesToZero() {
+    // effectHeight=1 → buffer = min(3, 0) = 0; no flat zone, full falloff over 1 block
+    assertEquals(1.0, GroundEffectMath.proximity(0, 1), 1e-9);
+    assertEquals(0.0, GroundEffectMath.proximity(1, 1), 1e-9);
+  }
+
+  // liftForce() — edge cases
+
+  @Test
+  void liftForce_zeroLiftStrength_isZero() {
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.05, 1.5, 1.0, 0.0), 1e-9);
   }
 }
