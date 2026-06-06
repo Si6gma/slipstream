@@ -115,8 +115,12 @@ public class LivingEntityMixin {
         // rather than fighting the velocity change.
         double resultHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);
         if (resultHSpeed >= speedGate && Math.abs(player.getXRot()) <= 30.0f) {
+          // Use look pitch so the ground-effect barrier follows player intent, not a lagging
+          // velocity vector. getXRot() is negative when looking up, so negate to match the
+          // atan2(ySpeed, hSpeed) convention used by liftForce.
+          double lookPitchDeg = -player.getXRot();
           double lift =
-              GroundEffectMath.liftForce(result.y, resultHSpeed, proximity, cfg.liftStrength);
+              GroundEffectMath.liftForce(result.y, lookPitchDeg, proximity, cfg.liftStrength);
           if (lift != 0.0) result = result.add(0, lift, 0);
         }
         if (result != velocity) player.setDeltaMovement(result);

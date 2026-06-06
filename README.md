@@ -21,8 +21,6 @@ should—building speed, holding altitude, and kicking up whatever's below you.
   behind, fine mist ahead. Scales with speed and proximity.
 - **Wingtip vortices** custom semi-transparent particles that spin and fade over
   ~a second. Purely visual but they feel right.
-- **Ambient sound** wind and surface audio scales with how close you are. Water
-  gets a high-speed splash, solid ground gets the block's own step sound.
 
 ---
 
@@ -54,27 +52,24 @@ Handles server-side particles and pushes config to any players running the
 client mod. Players without the mod still see particles, they just won't get the
 boost.
 
-**Dependencies:** [Fabric API](https://modrinth.com/mod/fabric-api),
-[Cloth Config](https://modrinth.com/mod/cloth-config).
-[ModMenu](https://modrinth.com/mod/modmenu) is optional but recommended for
-in-game config editing.
+**Dependencies:** [Fabric API](https://modrinth.com/mod/fabric-api).
 
 ---
 
 ## Config
 
 All values are tunable. On Fabric, the config lives at
-`.minecraft/config/slipstream.json` and everything is editable in-game through
-ModMenu. On Paper, it's `plugins/slipstream/config.yml` run `/slipstream reload`
-to push updated values to all online players live.
+`.minecraft/config/slipstream.json`. On Paper, it's
+`plugins/slipstream/config.yml`—run `/slipstream reload` to push updated values
+to all online players live.
 
 | Option             | Default | Notes                                                     |
 | ------------------ | ------- | --------------------------------------------------------- |
 | Effect height      | `20.0`  | Blocks above surface where the effect starts              |
-| Acceleration       | `0.001` | Speed gained per tick at maximum proximity                |
-| Max speed          | `3.0`   | Hard ceiling in blocks/tick (vanilla firework peaks ~1.5) |
+| Acceleration       | `0.013` | Speed gained per tick at maximum proximity                |
+| Max speed          | `1.5`   | Hard ceiling in blocks/tick (vanilla firework peaks ~1.5) |
 | Water spray height | `5.0`   | How close to water before spray kicks in                  |
-| Lift strength      | `0.015` | Upward force when skimming level                          |
+| Lift strength      | `0.6`   | Upward force when skimming level                          |
 
 The Paper plugin also has `override-clients` (default `true`) to push server
 values to connecting clients, and `disabled-worlds` to opt specific worlds out
@@ -98,7 +93,7 @@ cd slipstream
 ## Compatibility
 
 - Minecraft 26.1.2
-- Fabric Loader ≥ 0.19.2 · Fabric API ≥ 0.150.0 · Cloth Config ≥ 26.1.154
+- Fabric Loader ≥ 0.19.2 · Fabric API ≥ 0.145.4
 - Java ≥ 25
 - Paper API 26.1.2 (plugin only)
 

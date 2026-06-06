@@ -48,26 +48,26 @@ class GroundEffectMathTest {
 
   @Test
   void liftForce_whenHorizontal_isZero() {
-    assertEquals(0.0, GroundEffectMath.liftForce(0.0, 1.5, 1.0, 0.6), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(0.0, 0.0, 1.0, 0.6), 1e-9);
   }
 
   @Test
   void liftForce_whenDescending_isPositive() {
-    // ySpeed=-0.05, hSpeed=1.5 → pitch ≈ -1.9°, well inside the window
-    assertTrue(GroundEffectMath.liftForce(-0.05, 1.5, 1.0, 0.6) > 0);
+    // pitch ≈ -1.9°, well inside the window
+    assertTrue(GroundEffectMath.liftForce(-0.05, -1.9, 1.0, 0.6) > 0);
   }
 
   @Test
   void liftForce_whenAscending_isNegative() {
     // Bidirectional: pulls down when drifting up inside the window
-    assertTrue(GroundEffectMath.liftForce(0.05, 1.5, 1.0, 0.6) < 0);
+    assertTrue(GroundEffectMath.liftForce(0.05, 1.9, 1.0, 0.6) < 0);
   }
 
   @Test
   void liftForce_neverOvershoots() {
     // Correction must not push ySpeed past zero in either direction
     for (double ySpeed : new double[] {-0.01, -0.05, -0.1, 0.01, 0.05, 0.1}) {
-      double lift = GroundEffectMath.liftForce(ySpeed, 1.5, 1.0, 0.6);
+      double lift = GroundEffectMath.liftForce(ySpeed, 0.0, 1.0, 0.6);
       assertTrue(
           Math.abs(lift) <= Math.abs(ySpeed),
           "Lift must not overshoot ySpeed=0 at ySpeed=" + ySpeed);
@@ -76,15 +76,15 @@ class GroundEffectMathTest {
 
   @Test
   void liftForce_outsideAngleWindow_isZero() {
-    // ySpeed=-0.5, hSpeed=0.5 → pitch ≈ -45°, outside the ±30° window
-    assertEquals(0.0, GroundEffectMath.liftForce(-0.5, 0.5, 1.0, 0.6), 1e-9);
-    assertEquals(0.0, GroundEffectMath.liftForce(0.5, 0.5, 1.0, 0.6), 1e-9);
+    // ±45° is outside the ±30° window
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.5, -45.0, 1.0, 0.6), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(0.5, 45.0, 1.0, 0.6), 1e-9);
   }
 
   @Test
   void liftForce_scalesWithProximity() {
-    double liftLow = GroundEffectMath.liftForce(-0.05, 1.5, 0.5, 0.6);
-    double liftHigh = GroundEffectMath.liftForce(-0.05, 1.5, 1.0, 0.6);
+    double liftLow = GroundEffectMath.liftForce(-0.05, -1.9, 0.5, 0.6);
+    double liftHigh = GroundEffectMath.liftForce(-0.05, -1.9, 1.0, 0.6);
     assertTrue(liftHigh > liftLow, "More proximity should produce more lift");
   }
 
@@ -93,7 +93,7 @@ class GroundEffectMathTest {
     // Simulates one tick: vanilla applies ~-0.02 gravity, then our lift runs.
     // Starting from ySpeed=0, after gravity ySpeed=-0.02; lift should bring it back to 0.
     double afterGravity = -0.02;
-    double lift = GroundEffectMath.liftForce(afterGravity, 1.5, 1.0, 0.6);
+    double lift = GroundEffectMath.liftForce(afterGravity, 0.0, 1.0, 0.6);
     double result = afterGravity + lift;
     assertEquals(
         0.0,
@@ -155,6 +155,6 @@ class GroundEffectMathTest {
 
   @Test
   void liftForce_zeroLiftStrength_isZero() {
-    assertEquals(0.0, GroundEffectMath.liftForce(-0.05, 1.5, 1.0, 0.0), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.05, -1.9, 1.0, 0.0), 1e-9);
   }
 }

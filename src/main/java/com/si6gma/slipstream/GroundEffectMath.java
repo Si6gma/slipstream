@@ -22,14 +22,20 @@ public final class GroundEffectMath {
    * Bidirectional stabilising force that drives ySpeed toward 0 (level flight). Positive when
    * descending (pulls up), negative when ascending (pulls down). Only active within a ±30° pitch
    * window — steeper angles disengage it entirely so the player can intentionally climb or dive.
-   * When descending, includes an anti-gravity term (~0.02/tick) that offsets elytra's residual
+   * Uses the player's look pitch (intent) rather than velocity pitch so the ground-effect barrier
+   * responds to where the player is aiming, making skimming over water feel smooth instead of
+   * fighting a lagging trajectory vector.
+   *
+   * <p>pitchDeg follows the same convention as {@code Math.atan2(ySpeed, hSpeed)}: positive is
+   * ascending, negative is descending. Callers should pass {@code -player.getXRot()}.
+   *
+   * <p>When descending, includes an anti-gravity term (~0.02/tick) that offsets elytra's residual
    * gravity so equilibrium is level flight rather than a slow sink. liftStrength is the fraction of
    * ySpeed error corrected per tick [0, 1].
    */
   public static double liftForce(
-      double ySpeed, double hSpeed, double proximity, double liftStrength) {
+      double ySpeed, double pitchDeg, double proximity, double liftStrength) {
     if (liftStrength <= 0.0) return 0.0;
-    double pitchDeg = Math.toDegrees(Math.atan2(ySpeed, hSpeed));
     if (Math.abs(pitchDeg) > 30.0) return 0.0;
     double angleFactor = 1.0 - (Math.abs(pitchDeg) / 30.0);
     // Anti-gravity: offsets elytra's ~0.02/tick residual gravity at level flight.
