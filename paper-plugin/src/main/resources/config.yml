@@ -31,6 +31,8 @@ water-spray-height: 5.0
 # Upward lift force when skimming near the surface (client boost only).
 lift-strength: 0.6
 
-# Fraction of max-speed (0.0-1.0) required before vortex particles and lift activate.
-# 0.5 means both only kick in once you're at 50% of max-speed.
-effect-speed-threshold: 0.5
+# Fraction of max-speed (0.0-1.0) required before lift and vortex particles activate.
+# Lower this if you want the ground effect to kick in during normal gliding.
+# Vanilla elytra cruises around 0.6 bpt; with max-speed=3.0, a threshold of 0.2
+# means the effect starts at 0.6 bpt (normal glide speed).
+effect-speed-threshold: 0.2
