@@ -36,33 +36,42 @@ class GroundEffectMathTest {
 
     @Test
     void liftForce_whenAscending_isZero() {
-        assertEquals(0.0, GroundEffectMath.liftForce(0.5, 1.0, 0.015), 1e-9);
+        assertEquals(0.0, GroundEffectMath.liftForce(0.5, 0.5, 1.0, 0.015), 1e-9);
     }
 
     @Test
     void liftForce_whenHorizontal_isZero() {
-        assertEquals(0.0, GroundEffectMath.liftForce(0.0, 1.0, 0.015), 1e-9);
+        assertEquals(0.0, GroundEffectMath.liftForce(0.0, 0.5, 1.0, 0.015), 1e-9);
     }
 
     @Test
     void liftForce_neverExceedsDescendSpeed() {
+        // hSpeed=0.5 keeps all tested descents within ±30° except the steep ones (0.3, 1.0)
         for (double descent : new double[]{0.01, 0.05, 0.1, 0.3, 1.0}) {
-            double lift = GroundEffectMath.liftForce(-descent, 1.0, 0.015);
+            double lift = GroundEffectMath.liftForce(-descent, 0.5, 1.0, 0.015);
             assertTrue(lift <= descent, "Lift must not exceed descent speed at descent=" + descent);
             assertTrue(lift >= 0, "Lift must be non-negative");
         }
     }
 
     @Test
-    void liftForce_atSteepDive_isZero() {
-        assertEquals(0.0, GroundEffectMath.liftForce(-0.3, 1.0, 0.015), 1e-9);
-        assertEquals(0.0, GroundEffectMath.liftForce(-1.0, 1.0, 0.015), 1e-9);
+    void liftForce_outsideAngleWindow_isZero() {
+        // ySpeed=-0.5, hSpeed=0.5 → pitch ≈ -45°, outside the ±30° window
+        assertEquals(0.0, GroundEffectMath.liftForce(-0.5, 0.5, 1.0, 0.015), 1e-9);
+        assertEquals(0.0, GroundEffectMath.liftForce(-1.0, 0.5, 1.0, 0.015), 1e-9);
+    }
+
+    @Test
+    void liftForce_insideAngleWindow_isPositive() {
+        // ySpeed=-0.05, hSpeed=0.5 → pitch ≈ -5.7°, well inside the window
+        assertTrue(GroundEffectMath.liftForce(-0.05, 0.5, 1.0, 0.015) > 0);
     }
 
     @Test
     void liftForce_scalesWithProximity() {
-        double liftLow = GroundEffectMath.liftForce(-0.05, 0.5, 0.015);
-        double liftHigh = GroundEffectMath.liftForce(-0.05, 1.0, 0.015);
+        // pitch ≈ -5.7°, well inside the window
+        double liftLow = GroundEffectMath.liftForce(-0.05, 0.5, 0.5, 0.015);
+        double liftHigh = GroundEffectMath.liftForce(-0.05, 0.5, 1.0, 0.015);
         assertTrue(liftHigh > liftLow, "More proximity should produce more lift");
     }
 

@@ -12,13 +12,17 @@ public final class GroundEffectMath {
 
     /**
      * Upward lift force to apply this tick.
-     * Returns 0 if ascending. Never reverses descent — capped at ySpeed.
-     * Fades to zero as the player pitches into a steep dive (ySpeed <= -0.3).
+     * Only active within a ±30° pitch window — outside that the player can freely dive or climb.
+     * Within the window, fades linearly to zero at the ±30° edges so transitions feel natural.
+     * Never reverses an ascent; caps at -ySpeed so it neutralises descent without bouncing.
      */
-    public static double liftForce(double ySpeed, double proximity, double liftStrength) {
+    public static double liftForce(double ySpeed, double hSpeed, double proximity, double liftStrength) {
         if (ySpeed >= 0) return 0.0;
-        double diveFalloff = Math.max(0.0, Math.min(1.0, -ySpeed / 0.3));
-        double raw = proximity * liftStrength * (1.0 - diveFalloff);
+        double pitchDeg = Math.toDegrees(Math.atan2(ySpeed, hSpeed));
+        if (pitchDeg < -30.0) return 0.0;
+        // 1.0 at level flight, 0.0 at the -30° edge
+        double angleFactor = 1.0 + (pitchDeg / 30.0);
+        double raw = proximity * liftStrength * angleFactor;
         return Math.min(raw, -ySpeed);
     }
 
