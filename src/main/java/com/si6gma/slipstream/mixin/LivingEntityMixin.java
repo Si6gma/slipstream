@@ -51,6 +51,8 @@ public class LivingEntityMixin {
     // On client: returns server override if one was received, else local config.
     // On server: active is always null, so always returns local config.
     SlipstreamConfig cfg = ServerConfigOverride.get();
+    double maxSpeedSq = cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick;
+    double speedGate = cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick;
 
     // O(1) heightmap pre-check bail before any raycast when clearly too high
     int heightmapY =
@@ -91,13 +93,13 @@ public class LivingEntityMixin {
 
       if (ServerConfigOverride.isBoostAllowed()) {
         Vec3 result = velocity;
-        if (velocity.y <= 0 && hSpeedSq < cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
+        if (velocity.y <= 0 && hSpeedSq < maxSpeedSq) {
           double delta =
               GroundEffectMath.boostDelta(
                   hSpeed, proximity, cfg.accelerationPerTick, cfg.maxSpeedBlocksPerTick);
           result = velocity.add(travelDir.scale(delta));
           double newHSpeedSq = result.x * result.x + result.z * result.z;
-          if (newHSpeedSq > cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick) {
+          if (newHSpeedSq > maxSpeedSq) {
             result = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
           }
         }
@@ -106,8 +108,7 @@ public class LivingEntityMixin {
         // the player wants to dive or climb freely, so lift disengages immediately
         // rather than fighting the velocity change.
         double resultHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);
-        if (resultHSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick
-            && Math.abs(player.getXRot()) <= 30.0f) {
+        if (resultHSpeed >= speedGate && Math.abs(player.getXRot()) <= 30.0f) {
           double lift =
               GroundEffectMath.liftForce(result.y, resultHSpeed, proximity, cfg.liftStrength);
           result = result.add(0, lift, 0);
@@ -129,12 +130,12 @@ public class LivingEntityMixin {
 
       // Vortex + contact burst: every 2 ticks (lightweight, keep dense trail)
       if (tick % 2 == 0) {
-        if (ModParticles.wingVortex() != null
-            && hSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
+        var wingVortex = ModParticles.wingVortex();
+        if (wingVortex != null && hSpeed >= speedGate) {
           double wingOffset = 1.2;
           double vortexOut = 0.12 * proximity;
           level.sendParticles(
-              ModParticles.wingVortex(),
+              wingVortex,
               pos.x + right.x * wingOffset,
               pos.y + 0.3,
               pos.z + right.z * wingOffset,
@@ -144,7 +145,7 @@ public class LivingEntityMixin {
               right.z * vortexOut - travelDir.z * 0.03,
               0);
           level.sendParticles(
-              ModParticles.wingVortex(),
+              wingVortex,
               pos.x - right.x * wingOffset,
               pos.y + 0.3,
               pos.z - right.z * wingOffset,
@@ -254,11 +255,12 @@ public class LivingEntityMixin {
         } else if (!isWater && !surfaceBlock.isAir()) {
           // Ground dust (capped at 4)
           int dustCount = 1 + (int) (proximity * hSpeed * 1.5);
+          var dustParticle = new BlockParticleOption(ParticleTypes.BLOCK, surfaceBlock);
           for (int i = 0; i < Math.min(dustCount, 4); i++) {
             double scatterX = (random.nextDouble() - 0.5) * 2.5;
             double scatterZ = (random.nextDouble() - 0.5) * 2.5;
             level.sendParticles(
-                new BlockParticleOption(ParticleTypes.BLOCK, surfaceBlock),
+                dustParticle,
                 pos.x + scatterX,
                 surfaceY + 0.1,
                 pos.z + scatterZ,
