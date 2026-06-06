@@ -3,7 +3,7 @@ package com.si6gma.slipstream;
 public class SlipstreamConfig {
 
   public double effectHeightBlocks = 20.0;
-  public double accelerationPerTick = 0.013;
+  public double accelerationPerTick = 0.005;
   public double maxSpeedBlocksPerTick = 1.5;
   public double waterSprayHeightBlocks = 5.0;
   public double liftStrength = 0.6;
@@ -11,7 +11,7 @@ public class SlipstreamConfig {
 
   public void validatePostLoad() {
     if (!Double.isFinite(effectHeightBlocks)) effectHeightBlocks = 20.0;
-    if (!Double.isFinite(accelerationPerTick)) accelerationPerTick = 0.013;
+    if (!Double.isFinite(accelerationPerTick)) accelerationPerTick = 0.005;
     if (!Double.isFinite(maxSpeedBlocksPerTick)) maxSpeedBlocksPerTick = 1.5;
     if (!Double.isFinite(waterSprayHeightBlocks)) waterSprayHeightBlocks = 5.0;
     if (!Double.isFinite(liftStrength)) liftStrength = 0.6;

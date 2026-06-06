@@ -22,20 +22,38 @@ public final class GroundEffectMath {
    * Bidirectional stabilising force that drives ySpeed toward 0 (level flight). Positive when
    * descending (pulls up), negative when ascending (pulls down). Only active within a ±30° pitch
    * window — steeper angles disengage it entirely so the player can intentionally climb or dive.
-   * When descending, includes an anti-gravity term (~0.02/tick) that offsets elytra's residual
+   * Uses the player's look pitch (intent) rather than velocity pitch so the ground-effect barrier
+   * responds to where the player is aiming, making skimming over water feel smooth instead of
+   * fighting a lagging trajectory vector.
+   *
+   * <p>pitchDeg follows the same convention as {@code Math.atan2(ySpeed, hSpeed)}: positive is
+   * ascending, negative is descending. Callers should pass {@code -player.getXRot()}.
+   *
+   * <p>When descending, includes an anti-gravity term (~0.02/tick) that offsets elytra's residual
    * gravity so equilibrium is level flight rather than a slow sink. liftStrength is the fraction of
    * ySpeed error corrected per tick [0, 1].
    */
   public static double liftForce(
-      double ySpeed, double hSpeed, double proximity, double liftStrength) {
-    if (liftStrength <= 0.0) return 0.0;
-    double pitchDeg = Math.toDegrees(Math.atan2(ySpeed, hSpeed));
+      double ySpeed,
+      double pitchDeg,
+      double proximity,
+      double liftStrength,
+      double hSpeed,
+      double maxSpeed) {
+    if (liftStrength <= 0.0 || maxSpeed <= 0.0) return 0.0;
     if (Math.abs(pitchDeg) > 30.0) return 0.0;
+    double normalized = Math.min(hSpeed / maxSpeed, 1.0);
+    // Ease-out curve: lift stays nearly full at high speed and only tapers once the player gets
+    // slow. Exponent tuned to 1.5 so the taper is a bit harsher than the quadratic default while
+    // still feeling maxed out during normal cruise.
+    double speedRatio = 1.0 - Math.pow(1.0 - normalized, 1.5);
     double angleFactor = 1.0 - (Math.abs(pitchDeg) / 30.0);
     // Anti-gravity: offsets elytra's ~0.02/tick residual gravity at level flight.
+    // Scaled by speed so low-speed flight can't coast indefinitely; at max speed the player gets
+    // the full 0.02 compensation and can hold altitude while skimming.
     // Only when descending; ascending players are pulled back by damping alone.
-    double antiGravity = (ySpeed < 0) ? 0.02 * angleFactor * proximity : 0.0;
-    double correction = -ySpeed * angleFactor * proximity * liftStrength + antiGravity;
+    double antiGravity = (ySpeed < 0) ? 0.02 * angleFactor * proximity * speedRatio : 0.0;
+    double correction = -ySpeed * angleFactor * proximity * liftStrength * speedRatio + antiGravity;
     // Cap: never overshoot past ySpeed=0
     return ySpeed < 0 ? Math.min(correction, -ySpeed) : Math.max(correction, -ySpeed);
   }
