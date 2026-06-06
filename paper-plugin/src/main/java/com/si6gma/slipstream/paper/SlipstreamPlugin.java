@@ -153,7 +153,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     try {
       player.sendPluginMessage(this, CHANNEL, serializePayload(
           getConfig().getDouble("effect-height", 20.0),
-          getConfig().getDouble("acceleration", 0.013),
+          getConfig().getDouble("acceleration", 0.005),
           getConfig().getDouble("max-speed", 1.5),
           getConfig().getDouble("water-spray-height", 5.0),
           getConfig().getDouble("lift-strength", 0.6),
@@ -192,7 +192,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
       byte[] payload = effectEnabled
           ? serializePayload(
               getConfig().getDouble("effect-height", 20.0),
-              getConfig().getDouble("acceleration", 0.013),
+              getConfig().getDouble("acceleration", 0.005),
               getConfig().getDouble("max-speed", 1.5),
               getConfig().getDouble("water-spray-height", 5.0),
               getConfig().getDouble("lift-strength", 0.6),
