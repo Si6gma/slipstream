@@ -2,6 +2,7 @@ package com.si6gma.slipstream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.si6gma.slipstream.network.ServerConfigPayload;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -60,6 +61,8 @@ public class Slipstream implements ModInitializer {
         }
       } catch (IOException e) {
         LOGGER.error("Failed to read slipstream.json, using defaults", e);
+      } catch (JsonSyntaxException e) {
+        LOGGER.error("slipstream.json contains invalid JSON, using defaults", e);
       }
     }
     SlipstreamConfig defaults = new SlipstreamConfig();

@@ -93,14 +93,20 @@ public class LivingEntityMixin {
 
       if (ServerConfigOverride.isBoostAllowed()) {
         Vec3 result = velocity;
-        if (velocity.y <= 0 && hSpeedSq < maxSpeedSq) {
+        if (hSpeedSq < maxSpeedSq) {
           double delta =
               GroundEffectMath.boostDelta(
-                  hSpeed, proximity, cfg.accelerationPerTick, cfg.maxSpeedBlocksPerTick);
-          result = velocity.add(travelDir.scale(delta));
-          double newHSpeedSq = result.x * result.x + result.z * result.z;
-          if (newHSpeedSq > maxSpeedSq) {
-            result = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
+                  hSpeed,
+                  velocity.y,
+                  proximity,
+                  cfg.accelerationPerTick,
+                  cfg.maxSpeedBlocksPerTick);
+          if (delta > 0) {
+            result = velocity.add(travelDir.scale(delta));
+            double newHSpeedSq = result.x * result.x + result.z * result.z;
+            if (newHSpeedSq > maxSpeedSq) {
+              result = velocity.add(travelDir.scale(cfg.maxSpeedBlocksPerTick - hSpeed));
+            }
           }
         }
         // Lift gate: speed threshold AND look pitch within ±30°.
@@ -111,9 +117,9 @@ public class LivingEntityMixin {
         if (resultHSpeed >= speedGate && Math.abs(player.getXRot()) <= 30.0f) {
           double lift =
               GroundEffectMath.liftForce(result.y, resultHSpeed, proximity, cfg.liftStrength);
-          result = result.add(0, lift, 0);
+          if (lift != 0.0) result = result.add(0, lift, 0);
         }
-        player.setDeltaMovement(result);
+        if (result != velocity) player.setDeltaMovement(result);
       }
 
     } else {

@@ -42,11 +42,13 @@ public final class GroundEffectMath {
 
   /**
    * Horizontal acceleration delta to add this tick. Returns 0 if hSpeed is already at or above
-   * maxSpeed.
+   * maxSpeed, or if the entity is ascending beyond the dead-band — ground effect only accelerates
+   * level or descending flight. The 0.05 dead-band absorbs the ~0.02/tick anti-gravity noise so
+   * lift nudging velocity.y just past zero does not toggle the gate every tick.
    */
   public static double boostDelta(
-      double hSpeed, double proximity, double acceleration, double maxSpeed) {
-    if (hSpeed >= maxSpeed) return 0.0;
+      double hSpeed, double ySpeed, double proximity, double acceleration, double maxSpeed) {
+    if (hSpeed >= maxSpeed || ySpeed > 0.05) return 0.0;
     return proximity * acceleration;
   }
 }
