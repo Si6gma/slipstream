@@ -9,7 +9,7 @@ website: https://modrinth.com/mod/slipstream
 commands:
   slipstream:
     description: Slipstream admin commands.
-    usage: /slipstream reload
+    usage: /slipstream <enable|disable|reload>
     permission: slipstream.admin
 
 permissions:

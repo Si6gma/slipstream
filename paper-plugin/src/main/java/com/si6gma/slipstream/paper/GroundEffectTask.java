@@ -70,6 +70,7 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
 
   @Override
   public void run() {
+    if (!plugin.isEffectEnabled()) return;
     for (UUID id : glidingPlayers.toArray(new UUID[0])) {
       Player player = Bukkit.getPlayer(id);
       if (player != null && player.isOnline() && player.isGliding()) {
