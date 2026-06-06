@@ -28,10 +28,16 @@ jobs:
 
       - run: ./gradlew build
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: slipstream-${{ github.sha }}
-          path: |
-            build/libs/slipstream-*.jar
-            paper-plugin/build/libs/slipstream-paper-*.jar
+          name: slipstream-fabric-${{ github.sha }}
+          path: build/libs/slipstream-*.jar
+          archive: false
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: slipstream-paper-${{ github.sha }}
+          path: paper-plugin/build/libs/slipstream-paper-*.jar
+          archive: false
           if-no-files-found: error
