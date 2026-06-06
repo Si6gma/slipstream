@@ -39,6 +39,7 @@ public class LivingEntityMixin {
   private void applyGroundEffect(Vec3 travelVector, CallbackInfo ci) {
     LivingEntity self = (LivingEntity) (Object) this;
     if (!self.isFallFlying()) return;
+    if (self.isUnderWater() || self.isInLava()) return;
 
     Vec3 velocity = self.getDeltaMovement();
     double hSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
