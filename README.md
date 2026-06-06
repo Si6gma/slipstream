@@ -66,7 +66,7 @@ to all online players live.
 | Option             | Default | Notes                                                     |
 | ------------------ | ------- | --------------------------------------------------------- |
 | Effect height      | `20.0`  | Blocks above surface where the effect starts              |
-| Acceleration       | `0.013` | Speed gained per tick at maximum proximity                |
+| Acceleration       | `0.005` | Speed gained per tick at maximum proximity                |
 | Max speed          | `1.5`   | Hard ceiling in blocks/tick (vanilla firework peaks ~1.5) |
 | Water spray height | `5.0`   | How close to water before spray kicks in                  |
 | Lift strength      | `0.6`   | Upward force when skimming level                          |

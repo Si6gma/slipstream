@@ -17,7 +17,7 @@ class SlipstreamConfigTest {
     cfg.effectSpeedThreshold = Double.NaN;
     cfg.validatePostLoad();
     assertEquals(20.0, cfg.effectHeightBlocks, 1e-9);
-    assertEquals(0.013, cfg.accelerationPerTick, 1e-9);
+    assertEquals(0.005, cfg.accelerationPerTick, 1e-9);
     assertEquals(1.5, cfg.maxSpeedBlocksPerTick, 1e-9);
     assertEquals(5.0, cfg.waterSprayHeightBlocks, 1e-9);
     assertEquals(0.6, cfg.liftStrength, 1e-9);
@@ -32,7 +32,7 @@ class SlipstreamConfigTest {
     cfg.maxSpeedBlocksPerTick = Double.POSITIVE_INFINITY;
     cfg.validatePostLoad();
     assertEquals(20.0, cfg.effectHeightBlocks, 1e-9);
-    assertEquals(0.013, cfg.accelerationPerTick, 1e-9);
+    assertEquals(0.005, cfg.accelerationPerTick, 1e-9);
     assertEquals(1.5, cfg.maxSpeedBlocksPerTick, 1e-9);
   }
 
@@ -84,7 +84,7 @@ class SlipstreamConfigTest {
     SlipstreamConfig cfg = new SlipstreamConfig();
     cfg.validatePostLoad();
     assertEquals(20.0, cfg.effectHeightBlocks, 1e-9);
-    assertEquals(0.013, cfg.accelerationPerTick, 1e-9);
+    assertEquals(0.005, cfg.accelerationPerTick, 1e-9);
     assertEquals(1.5, cfg.maxSpeedBlocksPerTick, 1e-9);
     assertEquals(5.0, cfg.waterSprayHeightBlocks, 1e-9);
     assertEquals(0.6, cfg.liftStrength, 1e-9);
