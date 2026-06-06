@@ -31,13 +31,20 @@ jobs:
 
       - name: Generate changelog
         id: changelog
+        env:
+          COMMIT_REGEX: '^(Merge|Update .* to |l10n:)'
         run: |
           PREVIOUS=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -n "$PREVIOUS" ]; then
+            LOG=$(git log --pretty=format:"- %s (%an, %(trailers:key=Co-authored-by,valueonly,separator=%x2C ))" "$PREVIOUS..HEAD" \
+              | sed 's/ <[^>]*>//g' \
+              | sed 's/, *)/)/g')
+            if [ -n "$COMMIT_REGEX" ]; then
+              LOG=$(echo "$LOG" | grep -vE "$COMMIT_REGEX" || true)
+            fi
             {
               echo "changelog<<EOF"
-              git log --pretty=format:"- %s" "$PREVIOUS..HEAD"
-              echo ""
+              echo "$LOG"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           else
