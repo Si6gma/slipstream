@@ -61,11 +61,12 @@ jobs:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CHANGELOG: ${{ steps.changelog.outputs.changelog }}
 
+      - run: rm -f build/libs/*-sources.jar
+
       - uses: softprops/action-gh-release@v3
         with:
           files: |
             build/libs/slipstream-*.jar
-            !build/libs/slipstream-*-sources.jar
             paper-plugin/build/libs/slipstream-paper-*.jar
           body: ${{ steps.changelog.outputs.changelog }}
           fail_on_unmatched_files: true
