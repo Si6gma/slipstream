@@ -19,7 +19,7 @@ disabled-worlds: []
 effect-height: 20.0
 
 # Speed added per tick at maximum ground proximity (client boost only).
-acceleration: 0.001
+acceleration: 0.01
 
 # Hard speed ceiling for the boost in blocks/tick (client boost only).
 # Vanilla elytra with a firework tops out around 1.5.

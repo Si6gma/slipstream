@@ -11,7 +11,7 @@ public class SlipstreamConfig implements ConfigData {
     public double effectHeightBlocks = 20.0;
 
     @ConfigEntry.Gui.Tooltip
-    public double accelerationPerTick = 0.001;
+    public double accelerationPerTick = 0.01;
 
     @ConfigEntry.Gui.Tooltip
     public double maxSpeedBlocksPerTick = 3.0;
