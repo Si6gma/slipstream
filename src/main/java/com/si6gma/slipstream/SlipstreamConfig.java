@@ -1,26 +1,15 @@
 package com.si6gma.slipstream;
 
-import me.shedaniel.autoconfig.ConfigData;
-import me.shedaniel.autoconfig.annotation.Config;
-import me.shedaniel.autoconfig.annotation.ConfigEntry;
+public class SlipstreamConfig {
 
-@Config(name = "slipstream")
-public class SlipstreamConfig implements ConfigData {
+  public double effectHeightBlocks = 20.0;
+  public double accelerationPerTick = 0.013;
+  public double maxSpeedBlocksPerTick = 1.5;
+  public double waterSprayHeightBlocks = 5.0;
+  public double liftStrength = 0.6;
+  public double effectSpeedThreshold = 0.3;
 
-  @ConfigEntry.Gui.Tooltip public double effectHeightBlocks = 20.0;
-
-  @ConfigEntry.Gui.Tooltip public double accelerationPerTick = 0.01;
-
-  @ConfigEntry.Gui.Tooltip public double maxSpeedBlocksPerTick = 1.5;
-
-  @ConfigEntry.Gui.Tooltip public double waterSprayHeightBlocks = 5.0;
-
-  @ConfigEntry.Gui.Tooltip public double liftStrength = 0.6;
-
-  @ConfigEntry.Gui.Tooltip public double effectSpeedThreshold = 0.3;
-
-  @Override
-  public void validatePostLoad() throws ValidationException {
+  public void validatePostLoad() {
     effectHeightBlocks = Math.max(1.0, Math.min(effectHeightBlocks, 256.0));
     accelerationPerTick = Math.max(0.0, Math.min(accelerationPerTick, 1.0));
     maxSpeedBlocksPerTick = Math.max(0.1, Math.min(maxSpeedBlocksPerTick, 20.0));

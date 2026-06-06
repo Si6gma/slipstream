@@ -27,11 +27,7 @@ public final class ServerConfigOverride {
     cfg.waterSprayHeightBlocks = waterSprayHeight;
     cfg.liftStrength = liftStrength;
     cfg.effectSpeedThreshold = effectSpeedThreshold;
-    try {
-      cfg.validatePostLoad();
-    } catch (SlipstreamConfig.ValidationException e) {
-      Slipstream.LOGGER.warn("Server config validation failed: {}", e.getMessage());
-    }
+    cfg.validatePostLoad();
     active = cfg;
     Slipstream.LOGGER.info(
         "Server config applied — effectHeight={}, maxSpeed={}", effectHeight, maxSpeed);
