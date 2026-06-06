@@ -1,5 +1,11 @@
 plugins {
+    id 'checkstyle'
     id 'java'
+}
+
+checkstyle {
+    toolVersion = '10.21.4'
+    configFile = rootProject.file('config/checkstyle/checkstyle.xml')
 }
 
 group = 'com.si6gma'
