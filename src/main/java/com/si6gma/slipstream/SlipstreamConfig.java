@@ -23,7 +23,7 @@ public class SlipstreamConfig implements ConfigData {
     public double liftStrength = 0.6;
 
     @ConfigEntry.Gui.Tooltip
-    public double effectSpeedThreshold = 0.5;
+    public double effectSpeedThreshold = 0.2;
 
     @Override
     public void validatePostLoad() throws ValidationException {
