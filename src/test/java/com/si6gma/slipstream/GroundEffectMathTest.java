@@ -114,8 +114,13 @@ class GroundEffectMathTest {
   }
 
   @Test
-  void boostDelta_whenAscending_isZero() {
-    assertEquals(0.0, GroundEffectMath.boostDelta(1.0, 0.01, 1.0, 0.001, 3.0), 1e-9);
+  void boostDelta_whenAscendingBeyondDeadBand_isZero() {
+    assertEquals(0.0, GroundEffectMath.boostDelta(1.0, 0.06, 1.0, 0.001, 3.0), 1e-9);
+  }
+
+  @Test
+  void boostDelta_withinDeadBand_isNonZero() {
+    assertTrue(GroundEffectMath.boostDelta(1.0, 0.04, 1.0, 0.001, 3.0) > 0.0);
   }
 
   @Test
