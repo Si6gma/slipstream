@@ -11,7 +11,9 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerRegisterChannelEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,17 +54,37 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   @EventHandler
   public void onJoin(PlayerJoinEvent e) {
     if (!getConfig().getBoolean("override-clients", true)) return;
-    Bukkit.getScheduler()
-        .runTaskLater(
-            this,
-            () -> {
-              Player player = e.getPlayer();
-              if (getConfig().getStringList("disabled-worlds").contains(player.getWorld().getName()))
-                return;
-              if (effectEnabled) sendConfig(player);
-              else sendDisabledConfig(player);
-            },
-            20L);
+    Player player = e.getPlayer();
+    if (player.getListeningPluginChannels().contains(CHANNEL)) {
+      Bukkit.getScheduler().runTaskLater(this, () -> sendConfigForWorld(player, player.getWorld().getName()), 2L);
+    }
+  }
+
+  @EventHandler
+  public void onChannelRegister(PlayerRegisterChannelEvent e) {
+    if (!e.getChannel().equals(CHANNEL)) return;
+    if (!getConfig().getBoolean("override-clients", true)) return;
+    Player player = e.getPlayer();
+    sendConfigForWorld(player, player.getWorld().getName());
+  }
+
+  @EventHandler
+  public void onWorldChange(PlayerChangedWorldEvent e) {
+    if (!getConfig().getBoolean("override-clients", true)) return;
+    Player player = e.getPlayer();
+    if (!player.getListeningPluginChannels().contains(CHANNEL)) return;
+    sendConfigForWorld(player, player.getWorld().getName());
+  }
+
+  private void sendConfigForWorld(Player player, String worldName) {
+    if (!player.isOnline()) return;
+    if (getConfig().getStringList("disabled-worlds").contains(worldName)) {
+      sendDisabledConfig(player);
+    } else if (effectEnabled) {
+      sendConfig(player);
+    } else {
+      sendDisabledConfig(player);
+    }
   }
 
   @Override
