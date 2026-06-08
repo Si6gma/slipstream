@@ -51,10 +51,17 @@ jobs:
             echo "changelog=Initial release." >> "$GITHUB_OUTPUT"
           fi
 
-      - run: ./gradlew build publishMods
+      - name: Build
+        run: ./gradlew build
+
+      - name: Publish to Modrinth
+        run: ./gradlew publishMods
+        continue-on-error: true
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CHANGELOG: ${{ steps.changelog.outputs.changelog }}
+
+      - run: rm -f build/libs/*-sources.jar
 
       - uses: softprops/action-gh-release@v3
         with:
