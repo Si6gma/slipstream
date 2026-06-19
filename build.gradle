@@ -12,6 +12,8 @@ checkstyle {
 version = project.mod_version
 group = project.maven_group
 
+evaluationDependsOn(":paper-plugin")
+
 loom {
 	splitEnvironmentSourceSets()
 
