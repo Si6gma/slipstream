@@ -8,6 +8,7 @@ public class SlipstreamConfig {
   public double waterSprayHeightBlocks = 5.0;
   public double liftStrength = 0.6;
   public double effectSpeedThreshold = 0.3;
+  public boolean particlesEnabled = true;
 
   public void validatePostLoad() {
     if (!Double.isFinite(effectHeightBlocks)) effectHeightBlocks = 20.0;

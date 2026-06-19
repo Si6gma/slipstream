@@ -98,21 +98,21 @@ class GroundEffectMathTest {
 
   @Test
   void liftForce_antiGravityFullyCompensatesGravityAtMaxSpeed() {
-    // At max speed the full 0.02 anti-gravity term kicks in and cancels a 0.02 gravity tick.
+    // At max speed the full 0.02 antigravity term kicks in and cancels a 0.02 gravity tick.
     double afterGravity = -0.02;
     double lift = GroundEffectMath.liftForce(afterGravity, 0.0, 1.0, 0.6, 1.5, 1.5);
     double result = afterGravity + lift;
-    assertEquals(0.0, result, 1e-9, "Max-speed anti-gravity should fully cancel gravity");
+    assertEquals(0.0, result, 1e-9, "Max speed antigravity should fully cancel gravity");
   }
 
   @Test
   void liftForce_antiGravityPartiallyCompensatesGravityAtLowSpeed() {
-    // At low speed the speedRatio scales both correction and anti-gravity down, so a 0.02
+    // At low speed the speedRatio scales both correction and antigravity down, so a 0.02
     // gravity tick is only partially cancelled and the player still sinks.
     double afterGravity = -0.02;
     double lift = GroundEffectMath.liftForce(afterGravity, 0.0, 1.0, 0.6, 0.5, 1.5);
     double result = afterGravity + lift;
-    assertTrue(result < 0.0, "Low-speed lift should not fully cancel gravity");
+    assertTrue(result < 0.0, "Low speed lift should not fully cancel gravity");
     assertTrue(result > afterGravity, "Lift should still partially compensate gravity");
   }
 
@@ -156,7 +156,7 @@ class GroundEffectMathTest {
     assertTrue(GroundEffectMath.boostDelta(1.0, 0.05, 1.0, 0.001, 3.0) > 0.0);
   }
 
-  // proximity() — edge cases
+  // proximity() edge cases
 
   @Test
   void proximity_tinyEffectHeight_bufferCollapsesToZero() {
@@ -165,7 +165,7 @@ class GroundEffectMathTest {
     assertEquals(0.0, GroundEffectMath.proximity(1, 1), 1e-9);
   }
 
-  // liftForce() — edge cases
+  // liftForce() edge cases
 
   @Test
   void liftForce_zeroLiftStrength_isZero() {

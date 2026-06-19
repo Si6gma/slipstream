@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LivingEntity.class)
 public class LivingEntityMixin {
 
-  // Per-entity raycast cache. Instance fields are GC'd with the entity — no
+  // Per entity raycast cache. Instance fields are GC'd with the entity, so no
   // explicit cleanup needed. Dead entities can't call travel(), so stale cache is never read.
   @Unique private BlockHitResult ege$cachedHit;
   @Unique private double ege$cacheX, ege$cacheY, ege$cacheZ;
@@ -54,7 +54,7 @@ public class LivingEntityMixin {
     double maxSpeedSq = cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick;
     double speedGate = cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick;
 
-    // O(1) heightmap pre-check bail before any raycast when clearly too high
+    // O(1) heightmap precheck bail before any raycast when clearly too high
     int heightmapY =
         self.level().getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(pos.x), Mth.floor(pos.z));
     if (pos.y - heightmapY > cfg.effectHeightBlocks) return;
@@ -88,7 +88,7 @@ public class LivingEntityMixin {
     double proximity = GroundEffectMath.proximity(distToSurface, cfg.effectHeightBlocks);
 
     if (self.level().isClientSide()) {
-      // Speed boost must be client-side (elytra is client-authoritative)
+      // Speed boost must be client side (elytra is client authoritative)
       if (!(self instanceof Player player) || !player.isLocalPlayer()) return;
 
       if (ServerConfigOverride.isBoostAllowed()) {
@@ -110,12 +110,12 @@ public class LivingEntityMixin {
           }
         }
         // Lift gate: speed threshold AND look pitch within ±30°.
-        // Look-direction is the primary intent signal — looking steeper than 30° means
+        // Look direction is the primary intent signal: looking steeper than 30° means
         // the player wants to dive or climb freely, so lift disengages immediately
         // rather than fighting the velocity change.
         double resultHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);
         if (resultHSpeed >= speedGate && Math.abs(player.getXRot()) <= 30.0f) {
-          // Use look pitch so the ground-effect barrier follows player intent, not a lagging
+          // Use look pitch so the ground effect barrier follows player intent, not a lagging
           // velocity vector. getXRot() is negative when looking up, so negate to match the
           // atan2(ySpeed, hSpeed) convention used by liftForce.
           double lookPitchDeg = -player.getXRot();
@@ -134,6 +134,7 @@ public class LivingEntityMixin {
 
     } else {
       if (!(self instanceof ServerPlayer player)) return;
+      if (!cfg.particlesEnabled) return;
 
       ServerLevel level = player.level();
       Vec3 right = new Vec3(travelDir.z, 0, -travelDir.x);

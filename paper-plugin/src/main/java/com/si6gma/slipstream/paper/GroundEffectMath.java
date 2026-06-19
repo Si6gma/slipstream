@@ -1,6 +1,6 @@
 package com.si6gma.slipstream.paper;
 
-/** Mirror of the Fabric-side GroundEffectMath — keep formulas in sync. */
+/** Mirror of the Fabric-side GroundEffectMath; keep formulas in sync. */
 final class GroundEffectMath {
 
   private GroundEffectMath() {}

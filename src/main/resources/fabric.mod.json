@@ -18,6 +18,10 @@
     "client": ["com.si6gma.slipstream.client.SlipstreamClient"]
   },
   "mixins": ["slipstream.mixins.json"],
+  "updateJsonUrl": "https://raw.githubusercontent.com/Si6gma/slipstream/main/update.json",
+  "custom": {
+    "modrinth": "ESOV1nxn"
+  },
   "depends": {
     "fabricloader": ">=0.19.2",
     "minecraft": "~26.1.2",
