@@ -186,8 +186,8 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   }
 
   // Sends a no-op config so the Fabric mixin's boost and lift never activate.
-  // liftStrength=0 makes liftForce() return 0 immediately (including the anti-gravity term).
-  // acceleration=0 kills the horizontal boost. effectSpeedThreshold=1.0 is a belt-and-suspenders
+  // liftStrength=0 makes liftForce() return 0 immediately (including the antigravity term).
+  // acceleration=0 kills the horizontal boost. effectSpeedThreshold=1.0 is a belt and suspenders
   // guard so the lift block is never even entered at normal flight speeds.
   private void sendDisabledConfig(Player player) {
     if (!player.isOnline()) return;

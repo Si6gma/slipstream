@@ -48,13 +48,13 @@ package manager or grab the jar from the releases page.
 If you use VSCode, set `"java.format.settings.profile": "GoogleStyle"` in your
 settings to match.
 
-Beyond auto-formatting, please match the style already in the codebase:
+Beyond autoformatting, please match the style already in the codebase:
 
 - **4 spaces** for indentation (no tabs)
 - **Opening braces on the same line**
-- `final` utility classes with a `private` no-arg constructor
+- `final` utility classes with a `private` no argument constructor
 - `@Unique` prefix for mixin fields (we use `ege$`)
-- Descriptive variable names; single-letter is fine for math loops/vectors
+- Descriptive variable names; single letter is fine for math loops/vectors
 - Javadoc for public API methods in `GroundEffectMath`
 - Keep mixin methods concise; heavy logic belongs in helper classes
 
@@ -95,14 +95,14 @@ ones for the changed logic.
 2. **Make your changes** keep the diff focused. One logical change per PR.
 3. **Add tests** if you changed logic or math.
 4. **Run the full build** locally: `./gradlew build`
-5. **Update docs** (`README.md`, `CONTRIBUTION.md`, etc.) if the user-facing
+5. **Update docs** (`README.md`, `CONTRIBUTION.md`, etc.) if the user facing
    behavior changes.
 6. **Open a PR** with a clear title and description. Reference any related
    issues.
 
 ### What makes a PR likely to merge
 
-- Solves a single, well-described problem
+- Solves a single, well described problem
 - Includes tests for new logic
 - Doesn't break existing behavior without a strong justification
 - Follows the existing code style
@@ -111,8 +111,8 @@ ones for the changed logic.
 ## Areas That Need Help
 
 - **Paper plugin parity** the Paper plugin currently only handles config sync
-  and basic particles. Feature parity with the Fabric mod is a long-term goal.
-- **Performance** the mixin runs every tick for every fall-flying entity.
+  and basic particles. Feature parity with the Fabric mod is a long term goal.
+- **Performance** the mixin runs every tick for every fall flying entity.
   Profile before and after if you touch hot paths.
 - **Documentation** clearer inline comments for the particle math are always
   welcome.
