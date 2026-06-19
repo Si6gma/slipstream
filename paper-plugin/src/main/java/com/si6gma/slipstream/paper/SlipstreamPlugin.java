@@ -35,6 +35,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     getServer().getPluginManager().registerEvents(task, this);
     getServer().getMessenger().registerOutgoingPluginChannel(this, CHANNEL);
     getCommand("slipstream").setTabCompleter(this);
+    UpdateChecker.checkAsync(this);
     getLogger().info("Slipstream enabled.");
   }
 
@@ -207,31 +208,11 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
 
   public void broadcastConfig() {
     reloadConfig();
+    effectEnabled = getConfig().getBoolean("effect-enabled", true);
     if (task != null) task.reload();
-    List<String> disabled = getConfig().getStringList("disabled-worlds");
-    try {
-      // Build the payload once; all players in the same state receive the same bytes.
-      byte[] payload = effectEnabled
-          ? serializePayload(
-              getConfig().getDouble("effect-height", 20.0),
-              getConfig().getDouble("acceleration", 0.005),
-              getConfig().getDouble("max-speed", 1.5),
-              getConfig().getDouble("water-spray-height", 5.0),
-              getConfig().getDouble("lift-strength", 0.6),
-              getConfig().getDouble("effect-speed-threshold", 0.3))
-          : serializePayload(
-              getConfig().getDouble("effect-height", 20.0),
-              0.0,
-              getConfig().getDouble("max-speed", 1.5),
-              getConfig().getDouble("water-spray-height", 5.0),
-              0.0,
-              1.0);
-      for (Player p : Bukkit.getOnlinePlayers()) {
-        if (!disabled.contains(p.getWorld().getName()) && p.isOnline())
-          p.sendPluginMessage(this, CHANNEL, payload);
-      }
-    } catch (IOException ex) {
-      getLogger().warning("Failed to serialize config for broadcast: " + ex.getMessage());
+    for (Player p : Bukkit.getOnlinePlayers()) {
+      if (p.isOnline() && p.getListeningPluginChannels().contains(CHANNEL))
+        sendConfigForWorld(p, p.getWorld().getName());
     }
     getLogger().info("Config rebroadcast to " + Bukkit.getOnlinePlayers().size() + " players.");
   }

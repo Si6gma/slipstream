@@ -29,6 +29,9 @@ acceleration: 0.005
 # Vanilla elytra with a firework tops out around 1.5.
 max-speed: 1.5
 
+# Set to false to disable all ground effect particles server-wide.
+particles-enabled: true
+
 # Blocks above water where spray particles appear.
 water-spray-height: 5.0
 

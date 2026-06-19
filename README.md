@@ -70,6 +70,7 @@ to all online players live.
 | Max speed          | `1.5`   | Hard ceiling in blocks/tick (vanilla firework peaks ~1.5) |
 | Water spray height | `5.0`   | How close to water before spray kicks in                  |
 | Lift strength      | `0.6`   | Upward force when skimming level                          |
+| Particles enabled  | `true`  | Set to `false` to disable all ground effect particles     |
 
 The Paper plugin also has `override-clients` (default `true`) to push server
 values to connecting clients, and `disabled-worlds` to opt specific worlds out

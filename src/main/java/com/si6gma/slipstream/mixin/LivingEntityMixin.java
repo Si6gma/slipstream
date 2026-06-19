@@ -134,6 +134,7 @@ public class LivingEntityMixin {
 
     } else {
       if (!(self instanceof ServerPlayer player)) return;
+      if (!cfg.particlesEnabled) return;
 
       ServerLevel level = player.level();
       Vec3 right = new Vec3(travelDir.z, 0, -travelDir.x);
