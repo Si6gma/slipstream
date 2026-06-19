@@ -37,7 +37,7 @@ lift-strength: 0.6
 
 # Fraction of max-speed (0.0-1.0) required before lift and vortex particles activate.
 # Vanilla elytra cruises around 0.6 bpt; with max-speed=1.5, a threshold of 0.3
-# means the effect starts at 0.45 bpt — below cruise speed so lift stays active
+# means the effect starts at 0.45 bpt, below cruise speed so lift stays active
 # even when the player decelerates slightly by leveling out, but high enough
 # that it won't trigger at near-standstill glide speeds.
 effect-speed-threshold: 0.3

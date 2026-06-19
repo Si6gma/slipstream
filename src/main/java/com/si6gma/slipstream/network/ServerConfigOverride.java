@@ -30,7 +30,7 @@ public final class ServerConfigOverride {
     cfg.validatePostLoad();
     active = cfg;
     Slipstream.LOGGER.info(
-        "Server config applied — effectHeight={}, maxSpeed={}", effectHeight, maxSpeed);
+        "Server config applied: effectHeight={}, maxSpeed={}", effectHeight, maxSpeed);
   }
 
   public static void clear() {

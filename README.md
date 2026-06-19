@@ -4,7 +4,7 @@
 
 Inspired by real-world ground effect aerodynamics (and a little bit of HTTYD).
 Fly within 20 blocks of any surface and your elytra starts behaving like it
-should—building speed, holding altitude, and kicking up whatever's below you.
+should: building speed, holding altitude, and kicking up whatever's below you.
 
 ---
 
@@ -27,7 +27,7 @@ should—building speed, holding altitude, and kicking up whatever's below you.
 ## Server requirement
 
 The speed boost only activates when the server has it installed too. This is
-intentional—elytra movement is client-side in Minecraft, so without a server
+intentional. Elytra movement is client-side in Minecraft, so without a server
 check the boost would look identical to a speed hack to any anti-cheat.
 
 | Where you're playing            | Boost | Particles |
@@ -60,7 +60,7 @@ boost.
 
 All values are tunable. On Fabric, the config lives at
 `.minecraft/config/slipstream.json`. On Paper, it's
-`plugins/slipstream/config.yml`—run `/slipstream reload` to push updated values
+`plugins/slipstream/config.yml`. Run `/slipstream reload` to push updated values
 to all online players live.
 
 | Option             | Default | Notes                                                     |

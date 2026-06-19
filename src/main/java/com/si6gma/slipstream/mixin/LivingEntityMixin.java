@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LivingEntity.class)
 public class LivingEntityMixin {
 
-  // Per-entity raycast cache. Instance fields are GC'd with the entity — no
+  // Per-entity raycast cache. Instance fields are GC'd with the entity, so no
   // explicit cleanup needed. Dead entities can't call travel(), so stale cache is never read.
   @Unique private BlockHitResult ege$cachedHit;
   @Unique private double ege$cacheX, ege$cacheY, ege$cacheZ;
@@ -110,7 +110,7 @@ public class LivingEntityMixin {
           }
         }
         // Lift gate: speed threshold AND look pitch within ±30°.
-        // Look-direction is the primary intent signal — looking steeper than 30° means
+        // Look-direction is the primary intent signal: looking steeper than 30° means
         // the player wants to dive or climb freely, so lift disengages immediately
         // rather than fighting the velocity change.
         double resultHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);

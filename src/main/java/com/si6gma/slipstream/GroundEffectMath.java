@@ -21,7 +21,7 @@ public final class GroundEffectMath {
   /**
    * Bidirectional stabilising force that drives ySpeed toward 0 (level flight). Positive when
    * descending (pulls up), negative when ascending (pulls down). Only active within a ±30° pitch
-   * window — steeper angles disengage it entirely so the player can intentionally climb or dive.
+   * window; steeper angles disengage it entirely so the player can intentionally climb or dive.
    * Uses the player's look pitch (intent) rather than velocity pitch so the ground-effect barrier
    * responds to where the player is aiming, making skimming over water feel smooth instead of
    * fighting a lagging trajectory vector.
@@ -60,7 +60,7 @@ public final class GroundEffectMath {
 
   /**
    * Horizontal acceleration delta to add this tick. Returns 0 if hSpeed is already at or above
-   * maxSpeed, or if the entity is ascending beyond the dead-band — ground effect only accelerates
+   * maxSpeed, or if the entity is ascending beyond the dead-band; ground effect only accelerates
    * level or descending flight. The 0.05 dead-band absorbs the ~0.02/tick anti-gravity noise so
    * lift nudging velocity.y just past zero does not toggle the gate every tick.
    */

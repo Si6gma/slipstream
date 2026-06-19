@@ -156,7 +156,7 @@ class GroundEffectMathTest {
     assertTrue(GroundEffectMath.boostDelta(1.0, 0.05, 1.0, 0.001, 3.0) > 0.0);
   }
 
-  // proximity() — edge cases
+  // proximity() edge cases
 
   @Test
   void proximity_tinyEffectHeight_bufferCollapsesToZero() {
@@ -165,7 +165,7 @@ class GroundEffectMathTest {
     assertEquals(0.0, GroundEffectMath.proximity(1, 1), 1e-9);
   }
 
-  // liftForce() — edge cases
+  // liftForce() edge cases
 
   @Test
   void liftForce_zeroLiftStrength_isZero() {

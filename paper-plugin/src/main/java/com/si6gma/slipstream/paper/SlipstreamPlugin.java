@@ -210,7 +210,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     if (task != null) task.reload();
     List<String> disabled = getConfig().getStringList("disabled-worlds");
     try {
-      // Build the payload once — all players in the same state receive the same bytes.
+      // Build the payload once; all players in the same state receive the same bytes.
       byte[] payload = effectEnabled
           ? serializePayload(
               getConfig().getDouble("effect-height", 20.0),
