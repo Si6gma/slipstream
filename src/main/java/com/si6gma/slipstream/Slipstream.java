@@ -27,7 +27,8 @@ public class Slipstream implements ModInitializer {
   public void onInitialize() {
     config = loadConfig();
     ModParticles.register();
-    PayloadTypeRegistry.playS2C().register(ServerConfigPayload.TYPE, ServerConfigPayload.CODEC);
+    PayloadTypeRegistry.clientboundPlay()
+        .register(ServerConfigPayload.TYPE, ServerConfigPayload.CODEC);
 
     ServerPlayConnectionEvents.JOIN.register(
         (handler, sender, server) -> {
