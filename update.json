@@ -1,11 +1,11 @@
 {
   "homepage": "https://modrinth.com/mod/slipstream",
-  "26.1.2": {
+  "26.2": {
     "1.0.0": "Initial release",
     "1.0.1": "Fix config delivery on server start and across dimension changes"
   },
   "promos": {
-    "26.1.2-latest": "1.0.1",
-    "26.1.2-recommended": "1.0.1"
+    "26.2-latest": "1.0.1",
+    "26.2-recommended": "1.0.1"
   }
 }
