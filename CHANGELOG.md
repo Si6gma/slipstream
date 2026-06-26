@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-26
+
+### Changed
+
+- Updated for Minecraft 26.2 (Fabric Loader 0.19.3, Fabric API 0.153.0)
+
 ## [1.0.0] - 2026-06-06
 
 ### Added

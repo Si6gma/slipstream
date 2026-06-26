@@ -37,7 +37,9 @@ public class SlipstreamClient implements ClientModInitializer {
 
     // Track singleplayer state so the mixin knows whether local boost is allowed
     ClientPlayConnectionEvents.JOIN.register(
-        (handler, sender, client) -> ServerConfigOverride.setSingleplayer(client.isSingleplayer()));
+        (handler, sender, client) ->
+            ServerConfigOverride.setSingleplayer(
+                client.hasSingleplayerServer() && !client.getSingleplayerServer().isPublished()));
 
     // Revert to local config on disconnect (singleplayer uses local config)
     ClientPlayConnectionEvents.DISCONNECT.register(

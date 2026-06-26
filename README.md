@@ -93,8 +93,8 @@ cd slipstream
 
 ## Compatibility
 
-- Minecraft 26.1.2
-- Fabric Loader ≥ 0.19.2 · Fabric API ≥ 0.145.4
+- Minecraft 26.2
+- Fabric Loader ≥ 0.19.3 · Fabric API ≥ 0.153.0
 - Java ≥ 25
 - Paper API 26.1.2 (plugin only)
 
