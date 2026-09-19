@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Updated for Minecraft 26.3 (Fabric Loader 0.19.5, Fabric API 0.161.0, Paper API 26.3)
+- Mod now declares support for Minecraft 26.1 through 26.3 instead of a single version
+
 ## [1.0.2] - 2026-06-26
 
 ### Changed

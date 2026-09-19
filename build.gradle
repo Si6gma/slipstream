@@ -82,7 +82,7 @@ publishMods {
 	modrinth("fabric") {
 		accessToken = providers.environmentVariable("MODRINTH_TOKEN")
 		projectId = providers.gradleProperty("modrinth_project_id")
-		minecraftVersions.add(project.minecraft_version)
+		minecraftVersions.addAll(project.supported_minecraft_versions.split(","))
 		file = tasks.named("jar").flatMap { it.archiveFile }
 		modLoaders.add("fabric")
 	}
@@ -90,7 +90,7 @@ publishMods {
 	modrinth("paper") {
 		accessToken = providers.environmentVariable("MODRINTH_TOKEN")
 		projectId = providers.gradleProperty("modrinth_project_id")
-		minecraftVersions.add(project.minecraft_version)
+		minecraftVersions.addAll(project.supported_minecraft_versions.split(","))
 		file = project(":paper-plugin").tasks.named("jar").flatMap { it.archiveFile }
 		modLoaders.add("paper")
 		version = "${project.mod_version}-paper"
