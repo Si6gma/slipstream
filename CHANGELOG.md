@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-09-19
+
 ### Changed
 
 - Updated for Minecraft 26.3 (Fabric Loader 0.19.5, Fabric API 0.161.0, Paper API 26.3)
