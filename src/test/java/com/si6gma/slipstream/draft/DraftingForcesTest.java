@@ -63,63 +63,64 @@ class DraftingForcesTest {
   // pullForce()
 
   @Test
-  void pullForce_drivesLateralErrorTowardZero() {
+  void pullForce_pullsInwardWhenStationaryOffTheLine() {
     SlipstreamConfig cfg = new SlipstreamConfig();
-    double pull = DraftingMath.pullForce(2.0, 0.0, 1.0, cfg);
-    assertTrue(pull > 0.0);
-    assertEquals(2.0 * 0.25, pull, 1e-9);
+    assertTrue(DraftingMath.pullForce(2.0, 0.0, 0.0, 1.0, cfg) > 0.0);
   }
 
   @Test
-  void pullForce_neverOvershootsTheCentreline() {
+  void pullForce_brakesWhenClosingTooFast() {
     SlipstreamConfig cfg = new SlipstreamConfig();
-    // Deliberately past the validated range so the pre-clamp product exceeds the error and the
-    // overshoot guard has to actually engage. At a strength of 1.0 the product merely equals the
-    // error, which the guard would pass without doing anything.
-    cfg.draftPullStrength = 5.0;
-    for (double err : new double[] {0.01, 0.5, 2.0, 10.0}) {
-      double pull = DraftingMath.pullForce(err, 0.0, 1.0, cfg);
-      assertTrue(pull <= err + 1e-9, "pull " + pull + " overshot error " + err);
-      assertTrue(pull > 0.0);
-    }
+    // Already rushing at the centre line far faster than the approach wants: the correction must
+    // oppose that, which is precisely what stops the follower sailing through and springing back.
+    assertTrue(
+        DraftingMath.pullForce(0.2, 3.0, 0.0, 1.0, cfg) < 0.0,
+        "an overspeed approach must be braked, not accelerated");
   }
 
   @Test
-  void pullForce_convergesWithoutOscillating() {
+  void pullForce_settlesWithoutOscillating() {
+    // Simulate the real loop: the correction changes velocity, velocity moves the follower. The
+    // old position-sized impulse passed through zero and reversed; this must not.
     SlipstreamConfig cfg = new SlipstreamConfig();
-    double err = 3.0;
-    for (int i = 0; i < 200; i++) {
-      double step = DraftingMath.pullForce(err, 0.0, 1.0, cfg);
-      assertTrue(step >= 0.0, "pull never pushes away from the centreline");
-      err -= step;
-      assertTrue(err >= -1e-9, "error never crosses zero");
+    double offset = 3.0;
+    double closing = 0.0;
+    int signFlips = 0;
+    double previousOffset = offset;
+    for (int tick = 0; tick < 400 && offset > 1.0e-4; tick++) {
+      closing += DraftingMath.pullForce(offset, closing, 0.0, 1.0, cfg);
+      closing *= 0.91; // the game's own horizontal drag
+      offset -= closing;
+      if (offset < 0.0 && previousOffset > 0.0) signFlips++;
+      previousOffset = offset;
     }
-    assertTrue(err < 0.01, "should have converged, got " + err);
+    assertEquals(0, signFlips, "the follower must never cross the centre line");
+    assertTrue(offset < 0.05, "should have settled on the line, remaining offset " + offset);
   }
 
   @Test
   void pullForce_releasesPastTheReleaseAngle() {
     SlipstreamConfig cfg = new SlipstreamConfig(); // release at 35 degrees
-    assertEquals(0.0, DraftingMath.pullForce(2.0, 35.0, 1.0, cfg), 1e-9);
-    assertEquals(0.0, DraftingMath.pullForce(2.0, 90.0, 1.0, cfg), 1e-9);
-    assertEquals(0.0, DraftingMath.pullForce(2.0, -90.0, 1.0, cfg), 1e-9);
+    assertEquals(0.0, DraftingMath.pullForce(2.0, 0.0, 35.0, 1.0, cfg), 1e-9);
+    assertEquals(0.0, DraftingMath.pullForce(2.0, 0.0, 90.0, 1.0, cfg), 1e-9);
+    assertEquals(0.0, DraftingMath.pullForce(2.0, 0.0, -90.0, 1.0, cfg), 1e-9);
   }
 
   @Test
   void pullForce_fadesSmoothlyTowardTheReleaseAngle() {
     SlipstreamConfig cfg = new SlipstreamConfig();
-    double full = DraftingMath.pullForce(2.0, 0.0, 1.0, cfg);
-    double half = DraftingMath.pullForce(2.0, 17.5, 1.0, cfg);
+    double full = DraftingMath.pullForce(2.0, 0.0, 0.0, 1.0, cfg);
+    double half = DraftingMath.pullForce(2.0, 0.0, 17.5, 1.0, cfg);
     assertEquals(full * 0.5, half, 1e-9);
-    assertEquals(half, DraftingMath.pullForce(2.0, -17.5, 1.0, cfg), 1e-9);
+    assertEquals(half, DraftingMath.pullForce(2.0, 0.0, -17.5, 1.0, cfg), 1e-9);
   }
 
   @Test
   void pullForce_isZeroWithoutStrengthOrWhenDisabled() {
     SlipstreamConfig cfg = new SlipstreamConfig();
-    assertEquals(0.0, DraftingMath.pullForce(2.0, 0.0, 0.0, cfg), 1e-9);
+    assertEquals(0.0, DraftingMath.pullForce(2.0, 0.0, 0.0, 0.0, cfg), 1e-9);
     cfg.draftingEnabled = false;
-    assertEquals(0.0, DraftingMath.pullForce(2.0, 0.0, 1.0, cfg), 1e-9);
+    assertEquals(0.0, DraftingMath.pullForce(2.0, 0.0, 0.0, 1.0, cfg), 1e-9);
   }
 
   // leaderBonus()

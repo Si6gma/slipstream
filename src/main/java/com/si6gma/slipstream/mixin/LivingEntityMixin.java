@@ -157,8 +157,13 @@ public class LivingEntityMixin implements GroundEffectSampler {
       if (boost > 0.0) result = result.add(heading.scale(boost));
 
       double divergence = ege$lookDivergenceDeg(player, best.wakeHeading());
-      double pull = DraftingMath.pullForce(best.lateralOffset(), divergence, best.strength(), cfg);
-      if (pull > 0.0 && best.toCentre().lengthSqr() > 0.0) {
+      // How fast we are already closing on the centre line. Feeding this back is what turns the
+      // pull into a damped approach instead of a spring that overshoots and rubber bands.
+      double closingSpeed = result.dot(best.toCentre());
+      double pull =
+          DraftingMath.pullForce(
+              best.lateralOffset(), closingSpeed, divergence, best.strength(), cfg);
+      if (pull != 0.0 && best.toCentre().lengthSqr() > 0.0) {
         Vec3 step = best.toCentre().scale(pull);
         // Near a surface the ground effect owns the vertical axis, so the two never fight for it.
         double verticalShare = 1.0 - Math.max(0.0, Math.min(1.0, groundProximity));

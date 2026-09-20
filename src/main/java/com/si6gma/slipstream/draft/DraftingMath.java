@@ -103,16 +103,30 @@ public final class DraftingMath {
     return Math.min(strength * cfg.draftAccelerationPerTick, cap - hSpeed);
   }
 
+  /** Closing speed wanted per block of remaining offset. Falls to zero as the gap closes. */
+  private static final double APPROACH_RATE = 0.30;
+
   /**
-   * Magnitude of the pull toward the wake centreline, applied along {@link DraftQuery#toCentre}.
-   * Mirrors the ground effect lift force: it corrects error toward zero, never overshoots, and
-   * releases entirely once the player looks far enough away from the wake to mean it.
+   * Correction applied along {@link DraftQuery#toCentre}, positive to pull inward and negative to
+   * brake. Mirrors the ground effect lift force by steering a velocity rather than shoving a
+   * position.
    *
-   * <p>lookDivergenceDeg is the angle between the player's horizontal look direction and the wake
-   * heading at the nearest point.
+   * <p>The earlier version added an impulse sized against the remaining distance, which meant that
+   * on arriving at the centre line the follower still carried all that inward velocity and sailed
+   * straight through it, springing back and forth. Here the wanted closing speed shrinks as the
+   * gap shrinks, so the correction turns into a brake before arrival and the follower settles onto
+   * the line instead of oscillating about it.
+   *
+   * @param lateralError distance from the wake centre line, in blocks, never negative
+   * @param closingSpeed current speed toward the centre line, negative when moving away
+   * @param lookDivergenceDeg angle between the player's horizontal look and the wake heading
    */
   public static double pullForce(
-      double lateralError, double lookDivergenceDeg, double strength, SlipstreamConfig cfg) {
+      double lateralError,
+      double closingSpeed,
+      double lookDivergenceDeg,
+      double strength,
+      SlipstreamConfig cfg) {
     if (!cfg.draftingEnabled || strength <= 0.0 || cfg.draftPullStrength <= 0.0) return 0.0;
     if (lateralError <= 0.0) return 0.0;
     double release = cfg.draftReleaseAngleDeg;
@@ -120,8 +134,16 @@ public final class DraftingMath {
     double divergence = Math.abs(lookDivergenceDeg);
     if (divergence >= release) return 0.0;
     double angleFactor = 1.0 - (divergence / release);
-    double pull = lateralError * angleFactor * strength * cfg.draftPullStrength;
-    return Math.min(pull, lateralError);
+    double wantedClosing = lateralError * APPROACH_RATE;
+    double correction = (wantedClosing - closingSpeed) * angleFactor * strength * cfg.draftPullStrength;
+    // Hard guarantee on top of the damping: this tick's closing speed may never exceed the gap
+    // itself, so no combination of tuning can carry the follower across the line and reintroduce
+    // the rubber band. Braking corrections are left alone.
+    double resulting = closingSpeed + correction;
+    if (resulting > lateralError) {
+      correction = lateralError - closingSpeed;
+    }
+    return correction;
   }
 
   /**
