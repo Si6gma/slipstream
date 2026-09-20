@@ -226,6 +226,75 @@ class SlipstreamConfigTest {
   }
 
   @Test
+  void versionHandshakeFields_defaults() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    assertEquals("disable", cfg.versionEnforcement);
+    assertEquals(60, cfg.handshakeTimeoutTicks);
+  }
+
+  @Test
+  void validatePostLoad_handshakeTimeoutTicks_clampsToRange() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    cfg.handshakeTimeoutTicks = 1;
+    cfg.validatePostLoad();
+    assertEquals(20, cfg.handshakeTimeoutTicks);
+
+    cfg.handshakeTimeoutTicks = 10000;
+    cfg.validatePostLoad();
+    assertEquals(600, cfg.handshakeTimeoutTicks);
+
+    cfg.handshakeTimeoutTicks = 120;
+    cfg.validatePostLoad();
+    assertEquals(120, cfg.handshakeTimeoutTicks);
+  }
+
+  @Test
+  void validatePostLoad_versionEnforcement_acceptsRecognisedValues() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    cfg.versionEnforcement = "off";
+    cfg.validatePostLoad();
+    assertEquals("off", cfg.versionEnforcement);
+
+    cfg.versionEnforcement = "kick";
+    cfg.validatePostLoad();
+    assertEquals("kick", cfg.versionEnforcement);
+
+    cfg.versionEnforcement = "disable";
+    cfg.validatePostLoad();
+    assertEquals("disable", cfg.versionEnforcement);
+  }
+
+  @Test
+  void validatePostLoad_versionEnforcement_unrecognisedValueFallsBackToDisable() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    cfg.versionEnforcement = "bogus";
+    cfg.validatePostLoad();
+    assertEquals("disable", cfg.versionEnforcement);
+  }
+
+  @Test
+  void validatePostLoad_versionEnforcement_nullFallsBackToDisable() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    cfg.versionEnforcement = null;
+    cfg.validatePostLoad();
+    assertEquals("disable", cfg.versionEnforcement);
+  }
+
+  @Test
+  void copy_includesVersionHandshakeFields() {
+    SlipstreamConfig original = new SlipstreamConfig();
+    original.versionEnforcement = "kick";
+    original.handshakeTimeoutTicks = 100;
+
+    SlipstreamConfig copy = original.copy();
+    assertEquals("kick", copy.versionEnforcement);
+    assertEquals(100, copy.handshakeTimeoutTicks);
+
+    copy.versionEnforcement = "off";
+    assertEquals("kick", original.versionEnforcement);
+  }
+
+  @Test
   void copy_includesDraftFields() {
     SlipstreamConfig original = new SlipstreamConfig();
     original.draftingEnabled = false;
