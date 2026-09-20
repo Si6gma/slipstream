@@ -5,6 +5,9 @@ api-version: '1.21'
 description: Serverside particles for the Slipstream Fabric mod.
 authors: [Si6gma]
 website: https://modrinth.com/mod/slipstream
+# Apollo registers itself as Apollo-Bukkit on Paper/Spigot and Apollo-Folia on Folia.
+# Neither is required; without them the Lunar Client feedback simply stays off.
+softdepend: [Apollo-Bukkit, Apollo-Folia]
 
 commands:
   slipstream:

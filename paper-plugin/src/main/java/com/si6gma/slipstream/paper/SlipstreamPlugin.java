@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRegisterChannelEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import com.si6gma.slipstream.paper.apollo.ClientFeedback;
 
 public class SlipstreamPlugin extends JavaPlugin implements Listener, TabCompleter {
 
@@ -23,13 +24,15 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   private static final List<String> SUBCOMMANDS = List.of("enable", "disable", "reload");
 
   private GroundEffectTask task;
+  private ClientFeedback feedback;
   private boolean effectEnabled = true;
 
   @Override
   public void onEnable() {
     saveDefaultConfig();
     effectEnabled = getConfig().getBoolean("effect-enabled", true);
-    task = new GroundEffectTask(this);
+    feedback = ClientFeedback.create(this);
+    task = new GroundEffectTask(this, feedback);
     task.runTaskTimer(this, 0L, 1L);
     getServer().getPluginManager().registerEvents(this, this);
     getServer().getPluginManager().registerEvents(task, this);
@@ -44,6 +47,9 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     if (task != null) {
       task.cancel();
       task.cleanup();
+    }
+    if (feedback != null) {
+      feedback.shutdown();
     }
     getServer().getMessenger().unregisterOutgoingPluginChannel(this, CHANNEL);
   }
@@ -210,6 +216,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     reloadConfig();
     effectEnabled = getConfig().getBoolean("effect-enabled", true);
     if (task != null) task.reload();
+    if (feedback != null) feedback.reload();
     for (Player p : Bukkit.getOnlinePlayers()) {
       if (p.isOnline() && p.getListeningPluginChannels().contains(CHANNEL))
         sendConfigForWorld(p, p.getWorld().getName());

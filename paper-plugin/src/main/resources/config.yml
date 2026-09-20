@@ -44,3 +44,33 @@ lift-strength: 0.6
 # even when the player decelerates slightly by leveling out, but high enough
 # that it won't trigger at near-standstill glide speeds.
 effect-speed-threshold: 0.3
+
+#
+# Lunar Client integration (optional)
+#
+# Requires the Apollo plugin. Without it this whole section is ignored and
+# nothing changes for anyone. Players not on Lunar Client are unaffected
+# either way; they still get the normal particles.
+#
+apollo:
+  # Master switch. Changing this takes a restart, since the hook is wired up
+  # when the plugin enables. Everything below reloads with /slipstream reload.
+  enabled: true
+
+  notification:
+    # One time toast the first time a player ever triggers the ground effect.
+    # Who has seen it is stored in plugins/Slipstream/lunar-seen.txt; delete
+    # that file to show it to everyone again.
+    enabled: true
+
+  mod-settings:
+    # Turns on Lunar's FOV mod with dynamic flying FOV, so acceleration
+    # actually reads as speed on screen.
+    #
+    # Off by default: this overrides a client setting the player chose for
+    # themselves. Apollo scopes the override to the session, so their own
+    # settings come back when they disconnect.
+    enabled: false
+
+    # Strength of the FOV change while flying. 1.0 is no change.
+    flying-fov-modifier: 1.2

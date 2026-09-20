@@ -26,9 +26,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
+import com.si6gma.slipstream.paper.apollo.ClientFeedback;
+
 public class GroundEffectTask extends BukkitRunnable implements Listener {
 
   private final SlipstreamPlugin plugin;
+  private final ClientFeedback feedback;
   private double effectHeight;
   private double waterSprayHeight;
   private double effectSpeedThreshold;
@@ -39,12 +42,14 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
 
   // Only iterate actively-gliding players instead of all online players
   private final Set<UUID> glidingPlayers = Collections.synchronizedSet(new HashSet<>());
+  private final Set<UUID> feedbackActive = new HashSet<>();
 
   // Per-player raycast cache avoids a full DDA traversal every tick
   private final Map<UUID, CachedHit> hitCache = new HashMap<>();
 
-  public GroundEffectTask(SlipstreamPlugin plugin) {
+  public GroundEffectTask(SlipstreamPlugin plugin, ClientFeedback feedback) {
     this.plugin = plugin;
+    this.feedback = feedback;
     reload();
   }
 
@@ -57,6 +62,12 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     disabledWorlds = new HashSet<>(plugin.getConfig().getStringList("disabled-worlds"));
   }
 
+  private void endFeedback(UUID id) {
+    if (feedbackActive.remove(id)) {
+      feedback.effectEnded(id);
+    }
+  }
+
   @EventHandler
   public void onToggleGlide(EntityToggleGlideEvent e) {
     if (!(e.getEntity() instanceof Player player)) return;
@@ -65,6 +76,7 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     } else {
       glidingPlayers.remove(player.getUniqueId());
       hitCache.remove(player.getUniqueId());
+      endFeedback(player.getUniqueId());
     }
   }
 
@@ -73,11 +85,17 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     UUID id = e.getPlayer().getUniqueId();
     glidingPlayers.remove(id);
     hitCache.remove(id);
+    feedback.playerGone(id);
   }
 
   @Override
   public void run() {
-    if (!plugin.isEffectEnabled()) return;
+    if (!plugin.isEffectEnabled()) {
+      for (UUID id : feedbackActive.toArray(new UUID[0])) {
+        endFeedback(id);
+      }
+      return;
+    }
     for (UUID id : glidingPlayers.toArray(new UUID[glidingPlayers.size()])) {
       Player player = Bukkit.getPlayer(id);
       if (player != null && player.isOnline() && player.isGliding()) {
@@ -85,17 +103,23 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
       } else {
         glidingPlayers.remove(id);
         hitCache.remove(id);
+        endFeedback(id);
       }
     }
   }
 
   private void processPlayer(Player player) {
-    if (!particlesEnabled) return;
-    if (disabledWorlds.contains(player.getWorld().getName())) return;
-    if (player.isUnderWater() || player.isInLava()) return;
+    if (!particlesEnabled && !feedback.isActive()) return;
+    if (disabledWorlds.contains(player.getWorld().getName()) || player.isUnderWater() || player.isInLava()) {
+      endFeedback(player.getUniqueId());
+      return;
+    }
     Vector vel = player.getVelocity();
     double hSpeedSq = vel.getX() * vel.getX() + vel.getZ() * vel.getZ();
-    if (hSpeedSq < 0.0025) return;
+    if (hSpeedSq < 0.0025) {
+      endFeedback(player.getUniqueId());
+      return;
+    }
 
     double hSpeed = Math.sqrt(hSpeedSq);
     Location pos = player.getLocation();
@@ -103,11 +127,14 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
 
     // O(1) heightmap pre-check before doing any raycast
     int heightmapY = world.getHighestBlockYAt(pos.getBlockX(), pos.getBlockZ());
-    if (pos.getY() - heightmapY > effectHeight) return;
+    UUID id = player.getUniqueId();
+    if (pos.getY() - heightmapY > effectHeight) {
+      endFeedback(id);
+      return;
+    }
 
     // Raycast cache: reuse hit if player hasn't moved > 1 block and cache < 3 ticks
     // old
-    UUID id = player.getUniqueId();
     CachedHit cached = hitCache.get(id);
     long tick = plugin.getServer().getCurrentTick();
 
@@ -121,11 +148,17 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
       hitCache.put(id, cached);
     }
 
-    if (cached.result() == null || cached.result().getHitBlock() == null) return;
+    if (cached.result() == null || cached.result().getHitBlock() == null) {
+      endFeedback(id);
+      return;
+    }
 
     Location hitLoc = Objects.requireNonNull(cached.result().getHitPosition()).toLocation(world);
     double distToSurface = pos.getY() - hitLoc.getY();
-    if (distToSurface <= 0 || distToSurface >= effectHeight) return;
+    if (distToSurface <= 0 || distToSurface >= effectHeight) {
+      endFeedback(id);
+      return;
+    }
 
     double proximity = GroundEffectMath.proximity(distToSurface, effectHeight);
     double surfaceY = hitLoc.getY();
@@ -149,6 +182,14 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
             || (hitData instanceof Waterlogged wl && wl.isWaterlogged());
 
     boolean aboveThreshold = hSpeed >= effectSpeedThreshold * maxSpeed;
+    if (aboveThreshold) {
+      feedbackActive.add(id);
+      feedback.effectActive(player, proximity, tick);
+    } else {
+      endFeedback(id);
+    }
+
+    if (!particlesEnabled) return;
 
     // Vortex + contact burst: every 2 ticks
     if (playerTick % 2 == 0) {
@@ -317,6 +358,7 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
   public void cleanup() {
     hitCache.clear();
     glidingPlayers.clear();
+    feedbackActive.clear();
   }
 
   private record CachedHit(RayTraceResult result, Vector pos, long tick) {}
