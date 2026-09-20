@@ -57,7 +57,9 @@ public final class ClientFeelHandler {
       fovKick = 0.0f;
       LocalGroundEffectState.clear();
       wasDrafting = false;
-      WakeTrackers.clearAll();
+      // Only ever clear our own side here. The server tracker is cleared on the server thread by
+      // SERVER_STOPPED; touching it from the client thread races the integrated server.
+      WakeTrackers.client().clear();
       return;
     }
 
@@ -84,8 +86,6 @@ public final class ClientFeelHandler {
 
     for (Player p : level.players()) {
       if (!p.isFallFlying()) continue;
-      boolean remote = p != local;
-      if (remote && !cfg.remotePlayerParticles) continue;
       if (p.position().distanceToSqr(eye) > RANGE_SQ) continue;
 
       Vec3 v = p.getDeltaMovement();
@@ -100,6 +100,11 @@ public final class ClientFeelHandler {
                 local.tickCount,
                 cfg);
       }
+
+      // Cosmetic only: this setting hides other players' effects, it must never disable drafting,
+      // so it is applied after the wake above has already been recorded.
+      boolean remote = p != local;
+      if (remote && !cfg.remotePlayerParticles) continue;
 
       GroundEffectSample s = ((GroundEffectSampler) p).slipstream$sample(cfg);
       if (s == null) continue;
