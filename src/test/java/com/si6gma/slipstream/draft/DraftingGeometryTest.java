@@ -145,4 +145,11 @@ class DraftingGeometryTest {
     assertNotNull(q);
     assertTrue(q.lateralOffset() < 0.5, "should latch onto the northbound leg");
   }
+
+  @Test
+  void nearest_returnsNullWhenTheClockRanBackwards() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    // Trail stamped at ticks 100..110, queried at tick 5 after a dimension change reset the clock.
+    assertNull(DraftingMath.nearest(straightEastTrail(), new Vec3(6, 70, 0), 5, cfg));
+  }
 }

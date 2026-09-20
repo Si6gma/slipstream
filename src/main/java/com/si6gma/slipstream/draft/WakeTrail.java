@@ -1,6 +1,7 @@
 package com.si6gma.slipstream.draft;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import net.minecraft.world.phys.Vec3;
 
@@ -34,14 +35,30 @@ public final class WakeTrail {
     lastRecordedTick = tick;
   }
 
-  /** Drops every sample older than maxAgeTicks relative to nowTick. */
+  /**
+   * Drops every sample older than maxAgeTicks relative to nowTick. A nowTick meaningfully behind
+   * the newest sample means the tick counter reset, which happens on a dimension change: the whole
+   * trail is then stamped in a counter that no longer exists, so it is discarded rather than aged.
+   */
   public void pruneOlderThan(int nowTick, int maxAgeTicks) {
+    if (count > 0 && nowTick < buffer[head].tick() - maxAgeTicks) {
+      clear();
+      return;
+    }
     while (count > 0) {
       int oldest = oldestIndex();
       if (nowTick - buffer[oldest].tick() <= maxAgeTicks) break;
       buffer[oldest] = null;
       count--;
     }
+  }
+
+  /** Discards every sample. Used when the tick counter resets under the trail. */
+  public void clear() {
+    Arrays.fill(buffer, null);
+    head = -1;
+    count = 0;
+    lastRecordedTick = Integer.MIN_VALUE;
   }
 
   public boolean isEmpty() {

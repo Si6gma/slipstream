@@ -81,4 +81,20 @@ class WakeTrailTest {
     trail.pruneOlderThan(500, 10);
     assertTrue(trail.isEmpty());
   }
+
+  @Test
+  void pruneOlderThan_whenClockJumpsBackwards_dropsTheWholeTrail() {
+    // A dimension change resets the client player's tickCount, so every retained sample is stamped
+    // in a counter that no longer exists. Those samples are meaningless, not fresh.
+    WakeTrail trail = filled(4, 5000, 2);
+    trail.pruneOlderThan(10, 60);
+    assertTrue(trail.isEmpty(), "a backwards clock invalidates the whole trail");
+  }
+
+  @Test
+  void pruneOlderThan_smallBackwardJitterDoesNotWipeTheTrail() {
+    WakeTrail trail = filled(4, 100, 2); // newest at 106
+    trail.pruneOlderThan(105, 60);
+    assertEquals(4, trail.size(), "being one tick behind the newest sample is not a clock reset");
+  }
 }

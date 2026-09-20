@@ -73,7 +73,10 @@ public final class DraftingMath {
 
     if (bestPoint == null) return null;
 
-    double ageSeconds = Math.max(0.0, bestAgeTicks / TICKS_PER_SECOND);
+    // A negative age means the query clock is behind the sample clock, which happens after a
+    // dimension change. Clamping it to zero would read as a perfectly fresh wake, so refuse it.
+    if (bestAgeTicks < 0.0) return null;
+    double ageSeconds = bestAgeTicks / TICKS_PER_SECOND;
     double lateralOffset = Math.sqrt(bestDistSq);
     double radius = wakeRadius(ageSeconds, cfg);
     double strength = strength(ageSeconds, lateralOffset, radius, cfg);
