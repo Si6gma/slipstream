@@ -1,19 +1,16 @@
 package com.si6gma.slipstream.mixin;
 
 import com.si6gma.slipstream.GroundEffectMath;
+import com.si6gma.slipstream.GroundEffectParticles;
 import com.si6gma.slipstream.GroundEffectSample;
 import com.si6gma.slipstream.GroundEffectSampler;
 import com.si6gma.slipstream.LocalGroundEffectState;
-import com.si6gma.slipstream.ModParticles;
+import com.si6gma.slipstream.ServerParticleSink;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.network.ServerConfigOverride;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
@@ -120,8 +117,6 @@ public class LivingEntityMixin implements GroundEffectSampler {
     Vec3 travelDir = sample.travelDir();
     double maxSpeedSq = cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick;
     double speedGate = cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick;
-    BlockHitResult surfaceHit = ege$cachedHit;
-    double distToSurface = sample.distToSurface();
     double proximity = sample.proximity();
 
     if (self.level().isClientSide()) {
@@ -176,182 +171,13 @@ public class LivingEntityMixin implements GroundEffectSampler {
 
     } else {
       if (!(self instanceof ServerPlayer player)) return;
-      if (!cfg.particlesEnabled) return;
-
-      ServerLevel level = player.level();
-      Vec3 right = new Vec3(travelDir.z, 0, -travelDir.x);
-      RandomSource random = player.getRandom();
-      double surfaceY = surfaceHit.getLocation().y;
-      int tick = player.tickCount;
-
-      BlockState surfaceBlock = level.getBlockState(surfaceHit.getBlockPos());
-      boolean isWater = surfaceBlock.getFluidState().is(FluidTags.WATER);
-
-      // Vortex + contact burst: every 2 ticks (lightweight, keep dense trail)
-      if (tick % 2 == 0) {
-        var wingVortex = ModParticles.wingVortex();
-        if (wingVortex != null && hSpeed >= speedGate) {
-          double wingOffset = 1.2;
-          double vortexOut = 0.12 * proximity;
-          level.sendParticles(
-              wingVortex,
-              pos.x + right.x * wingOffset,
-              pos.y + 0.3,
-              pos.z + right.z * wingOffset,
-              0,
-              right.x * vortexOut - travelDir.x * 0.03,
-              0.01,
-              right.z * vortexOut - travelDir.z * 0.03,
-              0);
-          level.sendParticles(
-              wingVortex,
-              pos.x - right.x * wingOffset,
-              pos.y + 0.3,
-              pos.z - right.z * wingOffset,
-              0,
-              -right.x * vortexOut - travelDir.x * 0.03,
-              0.01,
-              -right.z * vortexOut - travelDir.z * 0.03,
-              0);
-        }
-
-        if (isWater && distToSurface <= cfg.waterSprayHeightBlocks) {
-          double waterProximity = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
-          int contactCount = 2 + (int) (waterProximity * 3);
-          level.sendParticles(
-              ParticleTypes.SPLASH,
-              pos.x + right.x,
-              surfaceY + 0.05,
-              pos.z + right.z,
-              contactCount,
-              0.2,
-              0.05,
-              0.2,
-              1.0);
-          level.sendParticles(
-              ParticleTypes.SPLASH,
-              pos.x - right.x,
-              surfaceY + 0.05,
-              pos.z - right.z,
-              contactCount,
-              0.2,
-              0.05,
-              0.2,
-              1.0);
-        }
-      }
-
-      // Heavier spray/dust loops: every 3 ticks
-      if (tick % 3 == 0) {
-        if (isWater && distToSurface <= cfg.waterSprayHeightBlocks) {
-          double waterProximity = 1.0 - (distToSurface / cfg.waterSprayHeightBlocks);
-
-          // Wingtip spray arcs (capped at 8/side)
-          int sprayCount = 2 + (int) (waterProximity * hSpeed * 6);
-          for (int i = 0; i < Math.min(sprayCount, 8); i++) {
-            double wingPos = 0.8 + random.nextDouble() * 0.7;
-            double spawnJitter = (random.nextDouble() - 0.5) * 0.3;
-            double outward = (0.3 + random.nextDouble() * 0.3) * waterProximity;
-            double forward = hSpeed * (0.08 + random.nextDouble() * 0.08);
-            double up = (0.9 + random.nextDouble() * 1.2) * waterProximity;
-            level.sendParticles(
-                ParticleTypes.SPLASH,
-                pos.x + right.x * wingPos + travelDir.x * spawnJitter,
-                surfaceY + 0.05,
-                pos.z + right.z * wingPos + travelDir.z * spawnJitter,
-                0,
-                right.x * outward + travelDir.x * forward,
-                up,
-                right.z * outward + travelDir.z * forward,
-                1.0);
-            level.sendParticles(
-                ParticleTypes.SPLASH,
-                pos.x - right.x * wingPos + travelDir.x * spawnJitter,
-                surfaceY + 0.05,
-                pos.z - right.z * wingPos + travelDir.z * spawnJitter,
-                0,
-                -right.x * outward + travelDir.x * forward,
-                up,
-                -right.z * outward + travelDir.z * forward,
-                1.0);
-          }
-
-          // Wake trail (capped at 5)
-          int wakeCount = 1 + (int) (waterProximity * hSpeed * 3);
-          for (int i = 0; i < Math.min(wakeCount, 5); i++) {
-            double trailBack = 0.3 + random.nextDouble() * 2.0;
-            double trailSide = (random.nextDouble() - 0.5) * 0.8;
-            level.sendParticles(
-                ParticleTypes.SPLASH,
-                pos.x - travelDir.x * trailBack + right.x * trailSide,
-                surfaceY + 0.05,
-                pos.z - travelDir.z * trailBack + right.z * trailSide,
-                0,
-                (random.nextDouble() - 0.5) * 0.04,
-                0.08 + random.nextDouble() * 0.08,
-                (random.nextDouble() - 0.5) * 0.04,
-                1.0);
-          }
-
-          // Fine mist
-          if (waterProximity > 0.5 && random.nextInt(3) == 0) {
-            level.sendParticles(
-                ParticleTypes.FALLING_WATER,
-                pos.x
-                    + travelDir.x * random.nextDouble() * 1.5
-                    + right.x * (random.nextDouble() - 0.5) * 1.5,
-                surfaceY + 0.15 + random.nextDouble() * 0.4,
-                pos.z
-                    + travelDir.z * random.nextDouble() * 1.5
-                    + right.z * (random.nextDouble() - 0.5) * 1.5,
-                0,
-                travelDir.x * 0.02,
-                0.02,
-                travelDir.z * 0.02,
-                1.0);
-          }
-
-        } else if (!isWater && !surfaceBlock.isAir()) {
-          // Ground dust (capped at 4)
-          int dustCount = 1 + (int) (proximity * hSpeed * 1.5);
-          var dustParticle = new BlockParticleOption(ParticleTypes.BLOCK, surfaceBlock);
-          for (int i = 0; i < Math.min(dustCount, 4); i++) {
-            double scatterX = (random.nextDouble() - 0.5) * 2.5;
-            double scatterZ = (random.nextDouble() - 0.5) * 2.5;
-            level.sendParticles(
-                dustParticle,
-                pos.x + scatterX,
-                surfaceY + 0.1,
-                pos.z + scatterZ,
-                0,
-                scatterX * 0.04,
-                0.05 + random.nextDouble() * 0.08,
-                scatterZ * 0.04,
-                0);
-          }
-
-          // POOF puffs (capped at 2, only when close)
-          if (proximity > 0.3) {
-            int puffCount = 1 + (int) (proximity * hSpeed * 0.5);
-            for (int i = 0; i < Math.min(puffCount, 2); i++) {
-              level.sendParticles(
-                  ParticleTypes.POOF,
-                  pos.x
-                      - travelDir.x * (0.5 + random.nextDouble() * 1.5)
-                      + right.x * (random.nextDouble() - 0.5),
-                  surfaceY + 0.2 + random.nextDouble() * 0.3,
-                  pos.z
-                      - travelDir.z * (0.5 + random.nextDouble() * 1.5)
-                      + right.z * (random.nextDouble() - 0.5),
-                  0,
-                  (random.nextDouble() - 0.5) * 0.02,
-                  0.03 + random.nextDouble() * 0.03,
-                  (random.nextDouble() - 0.5) * 0.02,
-                  1.0);
-            }
-          }
-        }
-      }
+      GroundEffectParticles.emit(
+          sample,
+          cfg,
+          player.tickCount,
+          player.getRandom(),
+          pos,
+          new ServerParticleSink(player.level()));
     }
   }
 }
