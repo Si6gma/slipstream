@@ -52,6 +52,16 @@ public class Slipstream implements ModInitializer {
     return config;
   }
 
+  /** Writes the current in-memory config to slipstream.json. Called by the config screen. */
+  public static void saveConfig() {
+    Path configPath = FabricLoader.getInstance().getConfigDir().resolve("slipstream.json");
+    try {
+      Files.writeString(configPath, GSON.toJson(config));
+    } catch (IOException e) {
+      LOGGER.warn("Failed to write slipstream.json", e);
+    }
+  }
+
   private static SlipstreamConfig loadConfig() {
     Path configPath = FabricLoader.getInstance().getConfigDir().resolve("slipstream.json");
     if (Files.exists(configPath)) {
