@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 167 tests pass across both modules.
+`./gradlew build` is green and 171 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -47,22 +47,31 @@ Do not relitigate these without a reason.
   comment pointing at the other.
 - **Short payloads stay supported.** A 1.0.x plugin sends only the original six
   doubles and the client keeps its own drafting defaults.
+- **A wake sample stores no heading.** The drafting spec in
+  `docs/superpowers/specs/` still shows `WakeSample` carrying one, because it
+  records the design as approved rather than as built. Item 4 replaced it: the
+  heading is derived from the sample positions at query time.
 
 ## Remaining work, in order
 
 Each item is independent unless noted. The ordering is by what reaches users.
 
-### 4. Derive wake headings from leader position history
+### 4. Derive wake headings from leader position history (done)
 
-Remote wake headings come from `getDeltaMovement()` on `RemotePlayer`, which is
-a multi-tick lerp toward an already-stale broadcast value. In a hard turn the
-wake centre line sits several blocks behind where the leader actually is, the
-look-divergence check fires, and the pull releases during exactly the turns the
-mechanic exists for. Derive heading from the leader's own interpolated position
-history instead.
+Remote wake headings came from `getDeltaMovement()` on `RemotePlayer`, which is
+a multi-tick lerp toward an already-stale broadcast value, so in a hard turn the
+heading still pointed down the leg the trail had already left, the
+look-divergence check fired, and the pull released during exactly the turns the
+mechanic exists for.
 
-**Do this before item 5**, because it removes much of the reason the camera
-assist exists.
+`WakeSample` no longer carries a heading at all. `DraftingMath.nearest` derives
+it from the two sample positions it already uses to form the segment, so the
+centre line the pull aims at and the bearing it releases against cannot
+disagree. A purely vertical segment has no bearing and is skipped.
+
+This was a prerequisite for item 5: the camera assist aims at
+`point + wakeHeading * 8`, so a lagging heading aimed it off the path during
+precisely the turns it was added to help with.
 
 ### 5. Rework the camera assist so it never fights the player
 

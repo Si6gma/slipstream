@@ -149,7 +149,6 @@ class DraftingForcesTest {
   void chainOfThree_convergesUsingRealWakeGeometry() {
     SlipstreamConfig cfg = new SlipstreamConfig();
     double cap = DraftingMath.draftCap(cfg);
-    Vec3 east = new Vec3(1, 0, 0);
 
     // Three gliders in a line flying east, each four blocks behind the one ahead.
     double[] x = {40.0, 36.0, 32.0};
@@ -161,8 +160,7 @@ class DraftingForcesTest {
         trails[i] = new WakeTrail();
         // A short recent history behind each glider, sampled every two ticks.
         for (int back = 3; back >= 0; back--) {
-          trails[i].record(
-              new Vec3(x[i] - back * speed[i] * 2, 70, 0), east, speed[i], tick - back * 2);
+          trails[i].record(new Vec3(x[i] - back * speed[i] * 2, 70, 0), speed[i], tick - back * 2);
         }
       }
       // Each follower drafts the glider directly ahead of it.

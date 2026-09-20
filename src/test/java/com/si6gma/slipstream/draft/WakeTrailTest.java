@@ -10,12 +10,10 @@ import org.junit.jupiter.api.Test;
 
 class WakeTrailTest {
 
-  private static final Vec3 EAST = new Vec3(1, 0, 0);
-
   private static WakeTrail filled(int count, int startTick, int step) {
     WakeTrail trail = new WakeTrail();
     for (int i = 0; i < count; i++) {
-      trail.record(new Vec3(i, 70, 0), EAST, 1.0, startTick + i * step);
+      trail.record(new Vec3(i, 70, 0), 1.0, startTick + i * step);
     }
     return trail;
   }
@@ -51,7 +49,7 @@ class WakeTrailTest {
   void shouldRecord_honoursInterval() {
     WakeTrail trail = new WakeTrail();
     assertTrue(trail.shouldRecord(100, 2), "an empty trail always records");
-    trail.record(Vec3.ZERO, EAST, 1.0, 100);
+    trail.record(Vec3.ZERO, 1.0, 100);
     assertFalse(trail.shouldRecord(101, 2));
     assertTrue(trail.shouldRecord(102, 2));
     assertTrue(trail.shouldRecord(150, 2));
@@ -61,7 +59,7 @@ class WakeTrailTest {
   void shouldRecord_afterTickCounterResets() {
     // A dimension change can move tickCount backwards. Record rather than stall forever.
     WakeTrail trail = new WakeTrail();
-    trail.record(Vec3.ZERO, EAST, 1.0, 5000);
+    trail.record(Vec3.ZERO, 1.0, 5000);
     assertTrue(trail.shouldRecord(10, 2));
   }
 

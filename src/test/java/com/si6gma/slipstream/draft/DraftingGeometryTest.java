@@ -11,13 +11,11 @@ import org.junit.jupiter.api.Test;
 
 class DraftingGeometryTest {
 
-  private static final Vec3 EAST = new Vec3(1, 0, 0);
-
   /** A leader flying east along y=70, z=0, one sample every 2 ticks, newest at x=10, tick 110. */
   private static WakeTrail straightEastTrail() {
     WakeTrail trail = new WakeTrail();
     for (int i = 0; i <= 5; i++) {
-      trail.record(new Vec3(i * 2, 70, 0), EAST, 1.0, 100 + i * 2);
+      trail.record(new Vec3(i * 2, 70, 0), 1.0, 100 + i * 2);
     }
     return trail;
   }
@@ -82,7 +80,7 @@ class DraftingGeometryTest {
     SlipstreamConfig cfg = new SlipstreamConfig();
     assertNull(DraftingMath.nearest(new WakeTrail(), Vec3.ZERO, 110, cfg));
     WakeTrail one = new WakeTrail();
-    one.record(Vec3.ZERO, EAST, 1.0, 100);
+    one.record(Vec3.ZERO, 1.0, 100);
     assertNull(DraftingMath.nearest(one, new Vec3(-1, 70, 0), 110, cfg));
   }
 
@@ -136,10 +134,10 @@ class DraftingGeometryTest {
   void nearest_followsACurvedPath() {
     // Leader turns: east then north. A follower inside the corner should still find the path.
     WakeTrail trail = new WakeTrail();
-    trail.record(new Vec3(0, 70, 0), EAST, 1.0, 100);
-    trail.record(new Vec3(4, 70, 0), EAST, 1.0, 102);
-    trail.record(new Vec3(8, 70, 0), EAST, 1.0, 104);
-    trail.record(new Vec3(8, 70, 4), new Vec3(0, 0, 1), 1.0, 106);
+    trail.record(new Vec3(0, 70, 0), 1.0, 100);
+    trail.record(new Vec3(4, 70, 0), 1.0, 102);
+    trail.record(new Vec3(8, 70, 0), 1.0, 104);
+    trail.record(new Vec3(8, 70, 4), 1.0, 106);
     SlipstreamConfig cfg = new SlipstreamConfig();
     DraftQuery q = DraftingMath.nearest(trail, new Vec3(8, 70, 2), 108, cfg);
     assertNotNull(q);
@@ -151,5 +149,69 @@ class DraftingGeometryTest {
     SlipstreamConfig cfg = new SlipstreamConfig();
     // Trail stamped at ticks 100..110, queried at tick 5 after a dimension change reset the clock.
     assertNull(DraftingMath.nearest(straightEastTrail(), new Vec3(6, 70, 0), 5, cfg));
+  }
+
+  // wakeHeading()
+
+  @Test
+  void nearest_wakeHeadingComesFromThePathNotTheReportedVelocity() {
+    // A remote leader's reported velocity is a multi tick lerp toward an already stale broadcast
+    // value, so through a hard turn it still points down the old leg while the leader is visibly
+    // on the new one. Reading that velocity made the wake heading lag the wake itself, the look
+    // divergence check fired, and the pull released during exactly the turns the mechanic exists
+    // for. The heading has to come from where the leader actually went.
+    WakeTrail trail = new WakeTrail();
+    trail.record(new Vec3(0, 70, 0), 1.0, 100);
+    trail.record(new Vec3(4, 70, 0), 1.0, 102);
+    trail.record(new Vec3(4, 70, 4), 1.0, 104); // turned north
+
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    DraftQuery q = DraftingMath.nearest(trail, new Vec3(4, 70, 2), 104, cfg);
+    assertNotNull(q);
+    assertEquals(0.0, q.wakeHeading().x, 1e-6, "heading must not keep pointing down the old leg");
+    assertEquals(1.0, q.wakeHeading().z, 1e-6, "heading must follow the northbound leg");
+  }
+
+  @Test
+  void nearest_wakeHeadingIsAHorizontalUnitVector() {
+    // Climbs and dives belong to the geometry, not the heading, which the look divergence check
+    // and the camera assist both read as a compass bearing.
+    WakeTrail trail = new WakeTrail();
+    trail.record(new Vec3(0, 60, 0), 1.0, 100);
+    trail.record(new Vec3(3, 64, 0), 1.0, 102);
+
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    DraftQuery q = DraftingMath.nearest(trail, new Vec3(2, 63, 0), 102, cfg);
+    assertNotNull(q);
+    assertEquals(0.0, q.wakeHeading().y, 1e-9, "a climbing leg still yields a flat heading");
+    assertEquals(1.0, q.wakeHeading().length(), 1e-9);
+  }
+
+  @Test
+  void nearest_ignoresASegmentWithNoMovement() {
+    // Two samples at one spot give no direction to derive, so that segment carries no heading.
+    WakeTrail trail = new WakeTrail();
+    trail.record(new Vec3(0, 70, 0), 1.0, 100);
+    trail.record(new Vec3(4, 70, 0), 1.0, 102);
+    trail.record(new Vec3(4, 70, 0), 1.0, 104);
+
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    DraftQuery q = DraftingMath.nearest(trail, new Vec3(2, 70, 0), 104, cfg);
+    assertNotNull(q);
+    assertEquals(1.0, q.wakeHeading().length(), 1e-9, "no NaN heading from a zero length segment");
+  }
+
+  @Test
+  void nearest_ignoresAPurelyVerticalSegment() {
+    // A vertical drop has no compass bearing. The horizontal leg before it is still draftable.
+    WakeTrail trail = new WakeTrail();
+    trail.record(new Vec3(0, 70, 0), 1.0, 100);
+    trail.record(new Vec3(4, 70, 0), 1.0, 102);
+    trail.record(new Vec3(4, 66, 0), 1.0, 104);
+
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    DraftQuery q = DraftingMath.nearest(trail, new Vec3(3, 70, 0), 104, cfg);
+    assertNotNull(q, "the earlier horizontal leg is still draftable");
+    assertEquals(1.0, q.wakeHeading().x, 1e-9);
   }
 }

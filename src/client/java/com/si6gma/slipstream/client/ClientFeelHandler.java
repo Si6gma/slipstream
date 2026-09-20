@@ -93,17 +93,14 @@ public final class ClientFeelHandler {
       if (!p.isFallFlying()) continue;
       if (p.position().distanceToSqr(eye) > RANGE_SQ) continue;
 
+      // Reported velocity still decides whether a glider is moving fast enough to leave a wake at
+      // all, but it no longer says which way that wake points. For a remote player it is a multi
+      // tick lerp toward an already stale broadcast, so through a turn it lags the path by several
+      // blocks. The heading is derived from the recorded positions instead.
       Vec3 v = p.getDeltaMovement();
       double wakeSpeed = Math.sqrt(v.x * v.x + v.z * v.z);
       if (wakeSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
-        WakeTrackers.client()
-            .record(
-                p.getUUID(),
-                p.position(),
-                new Vec3(v.x / wakeSpeed, 0, v.z / wakeSpeed),
-                wakeSpeed,
-                local.tickCount,
-                cfg);
+        WakeTrackers.client().record(p.getUUID(), p.position(), wakeSpeed, local.tickCount, cfg);
       }
 
       // Cosmetic only: this setting hides other players' effects, it must never disable drafting,

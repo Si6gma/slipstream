@@ -28,9 +28,9 @@ public final class WakeTrail {
     return elapsed < 0 || elapsed >= intervalTicks;
   }
 
-  public void record(Vec3 position, Vec3 heading, double speed, int tick) {
+  public void record(Vec3 position, double speed, int tick) {
     head = (head + 1) % CAPACITY;
-    buffer[head] = new WakeSample(position, heading, speed, tick);
+    buffer[head] = new WakeSample(position, speed, tick);
     if (count < CAPACITY) count++;
     lastRecordedTick = tick;
   }

@@ -50,12 +50,17 @@ public final class DraftingMath {
       WakeSample newer = trail.sampleAt(i);
       WakeSample older = trail.sampleAt(i + 1);
 
-      // Skip any segment the follower has passed: being ahead of the leader is not drafting.
-      if (follower.subtract(newer.position()).dot(newer.heading()) > 0.0) continue;
-
       Vec3 seg = newer.position().subtract(older.position());
       double segLenSq = seg.lengthSqr();
       if (segLenSq < EPSILON) continue;
+
+      // The heading is this segment's own direction rather than anything recorded alongside it,
+      // so the line the pull aims at and the bearing it releases against are the same line.
+      Vec3 heading = horizontalUnit(seg);
+      if (heading == null) continue;
+
+      // Skip any segment the follower has passed: being ahead of the leader is not drafting.
+      if (follower.subtract(newer.position()).dot(heading) > 0.0) continue;
 
       double t = follower.subtract(older.position()).dot(seg) / segLenSq;
       t = Math.max(0.0, Math.min(1.0, t));
@@ -65,7 +70,7 @@ public final class DraftingMath {
 
       bestDistSq = distSq;
       bestPoint = point;
-      bestHeading = newer.heading();
+      bestHeading = heading;
       bestAgeTicks = nowTick - (older.tick() + (newer.tick() - older.tick()) * t);
     }
 
@@ -85,6 +90,18 @@ public final class DraftingMath {
             ? Vec3.ZERO
             : bestPoint.subtract(follower).scale(1.0 / lateralOffset);
     return new DraftQuery(bestPoint, toCentre, lateralOffset, ageSeconds, strength, bestHeading);
+  }
+
+  /**
+   * Flattened unit direction of a wake segment, or null when the segment is purely vertical. A
+   * dive has no compass bearing, and both the look divergence check and the camera assist read
+   * this as one.
+   */
+  private static Vec3 horizontalUnit(Vec3 v) {
+    double lenSq = v.x * v.x + v.z * v.z;
+    if (lenSq < EPSILON) return null;
+    double len = Math.sqrt(lenSq);
+    return new Vec3(v.x / len, 0.0, v.z / len);
   }
 
   /** Speed ceiling while drafting. Above the normal cap so a follower can actually overtake. */

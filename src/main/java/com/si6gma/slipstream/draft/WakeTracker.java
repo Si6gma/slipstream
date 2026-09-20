@@ -19,11 +19,10 @@ public final class WakeTracker {
   private final Map<UUID, WakeTrail> trails = new HashMap<>();
 
   /** Records a sample for this glider if the configured sampling interval has elapsed. */
-  public void record(
-      UUID id, Vec3 position, Vec3 heading, double speed, int tick, SlipstreamConfig cfg) {
+  public void record(UUID id, Vec3 position, double speed, int tick, SlipstreamConfig cfg) {
     WakeTrail trail = trails.computeIfAbsent(id, key -> new WakeTrail());
     if (!trail.shouldRecord(tick, cfg.wakeSampleIntervalTicks)) return;
-    trail.record(position, heading, speed, tick);
+    trail.record(position, speed, tick);
   }
 
   /** Drops expired samples, then forgets any glider whose trail has emptied. */
