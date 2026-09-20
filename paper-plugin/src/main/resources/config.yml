@@ -57,18 +57,6 @@ apollo:
   # when the plugin enables. Everything below reloads with /slipstream reload.
   enabled: true
 
-  vignette:
-    # Screen edge darkening while the ground effect is active. Opacity scales
-    # with how close to the surface the player is.
-    enabled: true
-
-    # Client side texture path for the vignette. Point this at a texture from
-    # your resource pack to change the look.
-    texture: "misc/vignette.png"
-
-    # Opacity at maximum ground proximity, 0.0 to 1.0.
-    max-opacity: 0.5
-
   notification:
     # One time toast the first time a player ever triggers the ground effect.
     # Who has seen it is stored in plugins/Slipstream/lunar-seen.txt; delete
