@@ -2,6 +2,8 @@ package com.si6gma.slipstream.network;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.si6gma.slipstream.SlipstreamConfig;
@@ -66,5 +68,39 @@ class ServerConfigPayloadTest {
     assertEquals(3, decoded.draft().wakeSampleIntervalTicks());
     assertEquals(0.3, decoded.draft().leaderBonusPerDrafter(), 1e-9);
     assertEquals(2, decoded.draft().leaderBonusMaxDrafters());
+  }
+
+  @Test
+  void decode_truncatedDraftingBlock_keepsPhysicsAndDropsDrafting() {
+    // A plugin that writes a partial drafting block, or a proxy that truncates, must not throw
+    // inside the netty decoder: that disconnects the player with an Internal Exception screen.
+    FriendlyByteBuf buf = legacyBuffer();
+    buf.writeBoolean(true);
+    buf.writeDouble(0.02); // and then the message stops mid block
+    ServerConfigPayload payload = ServerConfigPayload.decode(buf);
+    assertTrue(payload.isValid(), "the physics half read cleanly and must be kept");
+    assertEquals(20.0, payload.effectHeight(), 1e-9);
+    assertNull(payload.draft(), "an unreadable drafting block falls back to local values");
+  }
+
+  @Test
+  void decode_truncatedPhysics_isMarkedInvalid() {
+    FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+    buf.writeDouble(20.0);
+    buf.writeDouble(0.005); // stops less than six doubles in
+    ServerConfigPayload payload = ServerConfigPayload.decode(buf);
+    assertFalse(payload.isValid(), "nothing trustworthy was read, so no override may be applied");
+  }
+
+  @Test
+  void decode_emptyBuffer_isMarkedInvalidRatherThanThrowing() {
+    ServerConfigPayload payload =
+        ServerConfigPayload.decode(new FriendlyByteBuf(Unpooled.buffer()));
+    assertFalse(payload.isValid());
+  }
+
+  @Test
+  void decode_wellFormedPayload_isValid() {
+    assertTrue(ServerConfigPayload.decode(legacyBuffer()).isValid());
   }
 }

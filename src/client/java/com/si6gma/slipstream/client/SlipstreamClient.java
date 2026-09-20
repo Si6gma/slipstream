@@ -34,15 +34,19 @@ public class SlipstreamClient implements ClientModInitializer {
     // slipstream:server_config.
     ClientPlayNetworking.registerGlobalReceiver(
         ServerConfigPayload.TYPE,
-        (payload, context) ->
-            ServerConfigOverride.apply(
+        (payload, context) -> {
+          // A payload we could not read grants nothing. Applying it would hand out boost
+          // permission carrying whatever garbage survived decoding.
+          if (!payload.isValid()) return;
+          ServerConfigOverride.apply(
                 payload.effectHeight(),
                 payload.acceleration(),
                 payload.maxSpeed(),
                 payload.waterSprayHeight(),
                 payload.liftStrength(),
                 payload.effectSpeedThreshold(),
-                payload.draft()));
+                payload.draft());
+        });
 
     // Track singleplayer state so the mixin knows whether local boost is allowed, and tell the
     // server which protocol we speak so it can decide whether to send the config payload back.

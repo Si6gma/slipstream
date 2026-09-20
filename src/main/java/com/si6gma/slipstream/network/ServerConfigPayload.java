@@ -2,6 +2,7 @@ package com.si6gma.slipstream.network;
 
 import com.si6gma.slipstream.Slipstream;
 import com.si6gma.slipstream.SlipstreamConfig;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -61,6 +62,8 @@ public record ServerConfigPayload(
     }
   }
 
+  private static final AtomicBoolean WARNED = new AtomicBoolean();
+
   public static final Type<ServerConfigPayload> TYPE =
       new Type<>(Identifier.fromNamespaceAndPath(Slipstream.MOD_ID, "server_config"));
 
@@ -92,18 +95,46 @@ public record ServerConfigPayload(
     buf.writeDouble(draft.cameraAssistStrength());
   }
 
+  /**
+   * Marks a payload we could not read. Decoding runs inside the netty pipeline, so throwing here
+   * disconnects the player with an "Internal Exception" screen; a malformed packet must not cost
+   * someone their session.
+   */
+  public boolean isValid() {
+    return !Double.isNaN(effectHeight);
+  }
+
+  private static ServerConfigPayload invalid() {
+    return new ServerConfigPayload(Double.NaN, 0, 0, 0, 0, 0, null);
+  }
+
   /** Package visible for the codec and for tests. */
   static ServerConfigPayload decode(FriendlyByteBuf buf) {
-    double effectHeight = buf.readDouble();
-    double acceleration = buf.readDouble();
-    double maxSpeed = buf.readDouble();
-    double waterSprayHeight = buf.readDouble();
-    double liftStrength = buf.readDouble();
-    double effectSpeedThreshold = buf.readDouble();
+    double effectHeight;
+    double acceleration;
+    double maxSpeed;
+    double waterSprayHeight;
+    double liftStrength;
+    double effectSpeedThreshold;
+    try {
+      effectHeight = buf.readDouble();
+      acceleration = buf.readDouble();
+      maxSpeed = buf.readDouble();
+      waterSprayHeight = buf.readDouble();
+      liftStrength = buf.readDouble();
+      effectSpeedThreshold = buf.readDouble();
+    } catch (RuntimeException e) {
+      // Nothing here can be trusted, so the caller applies no override at all. That leaves the
+      // player on their own config with no boost, which is the safe direction to fail.
+      warnOnce("Unreadable Slipstream config payload, ignoring it");
+      return invalid();
+    }
+
     DraftSettings draft = null;
     // A server that predates drafting stops here. Leave draft null and keep local defaults.
     if (buf.isReadable()) {
-      draft =
+      try {
+        draft =
           new DraftSettings(
               buf.readBoolean(),
               buf.readDouble(),
@@ -118,6 +149,12 @@ public record ServerConfigPayload(
               buf.readInt(),
               buf.readBoolean(),
               buf.readDouble());
+      } catch (RuntimeException e) {
+        // The physics half read cleanly, so keep it and fall back to local drafting values rather
+        // than discarding a payload that is mostly fine.
+        warnOnce("Unreadable drafting block in the Slipstream config payload, using local values");
+        draft = null;
+      }
     }
     return new ServerConfigPayload(
         effectHeight,
@@ -127,6 +164,13 @@ public record ServerConfigPayload(
         liftStrength,
         effectSpeedThreshold,
         draft);
+  }
+
+  /** Logged at most once per session: a broken server would otherwise spam the log every join. */
+  private static void warnOnce(String message) {
+    if (WARNED.compareAndSet(false, true)) {
+      Slipstream.LOGGER.warn(message);
+    }
   }
 
   @Override
