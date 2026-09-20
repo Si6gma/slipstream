@@ -1,6 +1,9 @@
 package com.si6gma.slipstream.mixin;
 
 import com.si6gma.slipstream.GroundEffectMath;
+import com.si6gma.slipstream.GroundEffectSample;
+import com.si6gma.slipstream.GroundEffectSampler;
+import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.ModParticles;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.network.ServerConfigOverride;
@@ -26,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
-public class LivingEntityMixin {
+public class LivingEntityMixin implements GroundEffectSampler {
 
   // Per entity raycast cache. Instance fields are GC'd with the entity, so no
   // explicit cleanup needed. Dead entities can't call travel(), so stale cache is never read.
@@ -34,30 +37,24 @@ public class LivingEntityMixin {
   @Unique private double ege$cacheX, ege$cacheY, ege$cacheZ;
   @Unique private int ege$cacheAge;
 
-  @Inject(method = "travel", at = @At("TAIL"))
-  private void applyGroundEffect(Vec3 travelVector, CallbackInfo ci) {
+  @Override
+  public GroundEffectSample slipstream$sample(SlipstreamConfig cfg) {
     LivingEntity self = (LivingEntity) (Object) this;
-    if (!self.isFallFlying()) return;
-    if (self.isUnderWater() || self.isInLava()) return;
+    if (!self.isFallFlying()) return null;
+    if (self.isUnderWater() || self.isInLava()) return null;
 
     Vec3 velocity = self.getDeltaMovement();
     double hSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
-    if (hSpeedSq < 0.0025) return;
+    if (hSpeedSq < 0.0025) return null;
 
     double hSpeed = Math.sqrt(hSpeedSq);
     Vec3 pos = self.position();
     Vec3 travelDir = new Vec3(velocity.x / hSpeed, 0, velocity.z / hSpeed);
 
-    // On client: returns server override if one was received, else local config.
-    // On server: active is always null, so always returns local config.
-    SlipstreamConfig cfg = ServerConfigOverride.get();
-    double maxSpeedSq = cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick;
-    double speedGate = cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick;
-
     // O(1) heightmap precheck bail before any raycast when clearly too high
     int heightmapY =
         self.level().getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(pos.x), Mth.floor(pos.z));
-    if (pos.y - heightmapY > cfg.effectHeightBlocks) return;
+    if (pos.y - heightmapY > cfg.effectHeightBlocks) return null;
 
     // Raycast cache reuse: skip raycast if player moved <1 block and cache is ≤3 ticks old
     ege$cacheAge++;
@@ -80,16 +77,61 @@ public class LivingEntityMixin {
       ege$cacheAge = 0;
     }
     BlockHitResult surfaceHit = ege$cachedHit;
-    if (surfaceHit.getType() == HitResult.Type.MISS) return;
+    if (surfaceHit.getType() == HitResult.Type.MISS) return null;
 
     double distToSurface = pos.y - surfaceHit.getLocation().y;
-    if (distToSurface <= 0 || distToSurface >= cfg.effectHeightBlocks) return;
+    if (distToSurface <= 0 || distToSurface >= cfg.effectHeightBlocks) return null;
 
     double proximity = GroundEffectMath.proximity(distToSurface, cfg.effectHeightBlocks);
+    BlockState surfaceBlock = self.level().getBlockState(surfaceHit.getBlockPos());
+    boolean isWater = surfaceBlock.getFluidState().is(FluidTags.WATER);
+    Vec3 right = new Vec3(travelDir.z, 0, -travelDir.x);
+    return new GroundEffectSample(
+        distToSurface,
+        proximity,
+        surfaceBlock,
+        surfaceHit.getLocation().y,
+        isWater,
+        hSpeed,
+        travelDir,
+        right);
+  }
+
+  @Inject(method = "travel", at = @At("TAIL"))
+  private void applyGroundEffect(Vec3 travelVector, CallbackInfo ci) {
+    LivingEntity self = (LivingEntity) (Object) this;
+
+    // On client: returns server override if one was received, else local config.
+    // On server: active is always null, so always returns local config.
+    SlipstreamConfig cfg = ServerConfigOverride.get();
+    boolean isLocalPlayer =
+        self.level().isClientSide() && self instanceof Player player && player.isLocalPlayer();
+
+    GroundEffectSample sample = slipstream$sample(cfg);
+    if (sample == null) {
+      if (isLocalPlayer) LocalGroundEffectState.clear();
+      return;
+    }
+
+    Vec3 velocity = self.getDeltaMovement();
+    double hSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
+    double hSpeed = sample.hSpeed();
+    Vec3 pos = self.position();
+    Vec3 travelDir = sample.travelDir();
+    double maxSpeedSq = cfg.maxSpeedBlocksPerTick * cfg.maxSpeedBlocksPerTick;
+    double speedGate = cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick;
+    BlockHitResult surfaceHit = ege$cachedHit;
+    double distToSurface = sample.distToSurface();
+    double proximity = sample.proximity();
 
     if (self.level().isClientSide()) {
       // Speed boost must be client side (elytra is client authoritative)
       if (!(self instanceof Player player) || !player.isLocalPlayer()) return;
+
+      LocalGroundEffectState.set(
+          proximity,
+          GroundEffectMath.speedRatio(hSpeed, cfg.maxSpeedBlocksPerTick),
+          sample.isWater());
 
       if (ServerConfigOverride.isBoostAllowed()) {
         Vec3 result = velocity;
