@@ -157,8 +157,8 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   private PayloadCodec.DraftValues draftFromConfig() {
     return new PayloadCodec.DraftValues(
         getConfig().getBoolean("drafting-enabled", true),
-        getConfig().getDouble("draft-acceleration", 0.008),
-        getConfig().getDouble("draft-speed-multiplier", 1.15),
+        getConfig().getDouble("draft-acceleration", 0.08),
+        getConfig().getDouble("draft-speed-multiplier", 1.0),
         getConfig().getDouble("draft-pull-strength", 0.25),
         getConfig().getDouble("draft-release-angle", 35.0),
         getConfig().getDouble("wake-base-radius", 1.5),
@@ -168,7 +168,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
         getConfig().getDouble("draft-leader-bonus-per-drafter", 0.15),
         getConfig().getInt("draft-leader-bonus-max-drafters", 3),
         getConfig().getBoolean("draft-camera-assist", true),
-        getConfig().getDouble("draft-camera-assist-strength", 0.15));
+        getConfig().getDouble("draft-camera-assist-strength", 0.5));
   }
 
 

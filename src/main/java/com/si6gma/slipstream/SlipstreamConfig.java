@@ -20,8 +20,8 @@ public class SlipstreamConfig {
 
   // Drafting. Physics values are server pushed; draftParticlesEnabled is client only.
   public boolean draftingEnabled = true;
-  public double draftAccelerationPerTick = 0.008;
-  public double draftSpeedMultiplier = 1.15;
+  public double draftAccelerationPerTick = 0.08;
+  public double draftSpeedMultiplier = 1.0;
   public double draftPullStrength = 0.25;
   public double draftReleaseAngleDeg = 35.0;
   public double wakeBaseRadius = 1.5;
@@ -35,7 +35,7 @@ public class SlipstreamConfig {
   // you. Server governed rather than local because it steers you, so a stronger assist is a real
   // advantage over a player without one.
   public boolean draftCameraAssist = true;
-  public double draftCameraAssistStrength = 0.15;
+  public double draftCameraAssistStrength = 0.5;
 
   // Version handshake. Server side only; the client ignores these.
   public String versionEnforcement = "disable";
@@ -50,14 +50,14 @@ public class SlipstreamConfig {
     if (!Double.isFinite(effectSpeedThreshold)) effectSpeedThreshold = 0.3;
     if (!Double.isFinite(soundVolume)) soundVolume = 1.0;
     if (!Double.isFinite(fovKickStrength)) fovKickStrength = 0.1;
-    if (!Double.isFinite(draftAccelerationPerTick)) draftAccelerationPerTick = 0.008;
-    if (!Double.isFinite(draftSpeedMultiplier)) draftSpeedMultiplier = 1.15;
+    if (!Double.isFinite(draftAccelerationPerTick)) draftAccelerationPerTick = 0.08;
+    if (!Double.isFinite(draftSpeedMultiplier)) draftSpeedMultiplier = 1.0;
     if (!Double.isFinite(draftPullStrength)) draftPullStrength = 0.25;
     if (!Double.isFinite(draftReleaseAngleDeg)) draftReleaseAngleDeg = 35.0;
     if (!Double.isFinite(wakeBaseRadius)) wakeBaseRadius = 1.5;
     if (!Double.isFinite(wakeSpreadRate)) wakeSpreadRate = 1.2;
     if (!Double.isFinite(draftLeaderBonusPerDrafter)) draftLeaderBonusPerDrafter = 0.15;
-    if (!Double.isFinite(draftCameraAssistStrength)) draftCameraAssistStrength = 0.15;
+    if (!Double.isFinite(draftCameraAssistStrength)) draftCameraAssistStrength = 0.5;
     effectHeightBlocks = Math.max(1.0, Math.min(effectHeightBlocks, 256.0));
     accelerationPerTick = Math.max(0.0, Math.min(accelerationPerTick, 1.0));
     maxSpeedBlocksPerTick = Math.max(0.1, Math.min(maxSpeedBlocksPerTick, 20.0));

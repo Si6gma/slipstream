@@ -90,8 +90,8 @@ to all online players live.
 | Particles on vanilla servers | `true` | Render particles locally when the server lacks the mod |
 | Remote player particles | `true` | Particles and sounds for other gliders you can see  |
 | Drafting           | `true`  | Ride other players' wakes (server pushed)                 |
-| Draft acceleration | `0.008` | Speed gained per tick at the centre of a fresh wake        |
-| Draft speed mult.  | `1.15`  | Ceiling while drafting, as a multiple of max speed         |
+| Draft acceleration | `0.08`  | Speed gained per tick at the centre of a fresh wake        |
+| Draft speed mult.  | `1.0`   | Ceiling while drafting, as a multiple of max speed         |
 | Pull strength      | `0.25`  | Fraction of your offset from the wake corrected per tick   |
 | Pull release angle | `35.0`  | Look this far from the wake and the pull lets go           |
 | Wake particles     | `true`  | Draw other players' wakes (client only)                    |

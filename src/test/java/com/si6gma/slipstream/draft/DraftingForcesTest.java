@@ -12,8 +12,18 @@ class DraftingForcesTest {
   // draftCap() and boostDelta()
 
   @Test
-  void draftCap_isTheOvertakeMarginAboveNormalMaxSpeed() {
+  void draftCap_isMaxSpeedTimesTheMultiplier() {
     SlipstreamConfig cfg = new SlipstreamConfig();
+    assertEquals(cfg.maxSpeedBlocksPerTick * cfg.draftSpeedMultiplier,
+        DraftingMath.draftCap(cfg), 1e-9);
+  }
+
+  @Test
+  void draftCap_aboveOneEnablesOvertaking() {
+    // The shipped default is 1.0, meaning a drafter reaches the shared cap fast but never passes
+    // the leader on draft alone. The capability still has to work when a server opts into it.
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    cfg.draftSpeedMultiplier = 1.15;
     assertEquals(1.5 * 1.15, DraftingMath.draftCap(cfg), 1e-9);
     assertTrue(
         DraftingMath.draftCap(cfg) > cfg.maxSpeedBlocksPerTick, "overtaking must be possible");
@@ -28,8 +38,8 @@ class DraftingForcesTest {
   @Test
   void boostDelta_scalesWithStrength() {
     SlipstreamConfig cfg = new SlipstreamConfig();
-    assertEquals(0.008, DraftingMath.boostDelta(0.5, 1.0, cfg), 1e-9);
-    assertEquals(0.004, DraftingMath.boostDelta(0.5, 0.5, cfg), 1e-9);
+    assertEquals(cfg.draftAccelerationPerTick, DraftingMath.boostDelta(0.5, 1.0, cfg), 1e-9);
+    assertEquals(cfg.draftAccelerationPerTick / 2, DraftingMath.boostDelta(0.5, 0.5, cfg), 1e-9);
   }
 
   @Test
@@ -117,7 +127,7 @@ class DraftingForcesTest {
   @Test
   void leaderBonus_scalesWithDraftersAndCaps() {
     SlipstreamConfig cfg = new SlipstreamConfig();
-    double per = 0.15 * 0.008;
+    double per = cfg.draftLeaderBonusPerDrafter * cfg.draftAccelerationPerTick;
     assertEquals(0.0, DraftingMath.leaderBonus(0, cfg), 1e-12);
     assertEquals(per, DraftingMath.leaderBonus(1, cfg), 1e-12);
     assertEquals(per * 3, DraftingMath.leaderBonus(3, cfg), 1e-12);

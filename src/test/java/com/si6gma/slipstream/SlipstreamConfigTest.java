@@ -152,8 +152,8 @@ class SlipstreamConfigTest {
   void draftFields_defaults() {
     SlipstreamConfig cfg = new SlipstreamConfig();
     assertEquals(true, cfg.draftingEnabled);
-    assertEquals(0.008, cfg.draftAccelerationPerTick, 1e-9);
-    assertEquals(1.15, cfg.draftSpeedMultiplier, 1e-9);
+    assertEquals(0.08, cfg.draftAccelerationPerTick, 1e-9);
+    assertEquals(1.0, cfg.draftSpeedMultiplier, 1e-9);
     assertEquals(0.25, cfg.draftPullStrength, 1e-9);
     assertEquals(35.0, cfg.draftReleaseAngleDeg, 1e-9);
     assertEquals(1.5, cfg.wakeBaseRadius, 1e-9);
@@ -176,8 +176,8 @@ class SlipstreamConfigTest {
     cfg.wakeSpreadRate = Double.NaN;
     cfg.draftLeaderBonusPerDrafter = Double.NaN;
     cfg.validatePostLoad();
-    assertEquals(0.008, cfg.draftAccelerationPerTick, 1e-9);
-    assertEquals(1.15, cfg.draftSpeedMultiplier, 1e-9);
+    assertEquals(0.08, cfg.draftAccelerationPerTick, 1e-9);
+    assertEquals(1.0, cfg.draftSpeedMultiplier, 1e-9);
     assertEquals(0.25, cfg.draftPullStrength, 1e-9);
     assertEquals(35.0, cfg.draftReleaseAngleDeg, 1e-9);
     assertEquals(1.5, cfg.wakeBaseRadius, 1e-9);
