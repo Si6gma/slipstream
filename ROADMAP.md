@@ -1,0 +1,216 @@
+# Slipstream Roadmap
+
+Working state and remaining work for the `feature/drafting` branch. Written so
+someone picking this up cold does not have to reconstruct the reasoning.
+
+## Where things stand
+
+Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
+`./gradlew build` is green and 167 tests pass across both modules.
+
+Shipped on this branch:
+
+- **Feel pass**: wind, water wake and block-accurate skim sounds, all from
+  vanilla sound events; an FOV kick tied to ground effect speed; particles
+  rendered client side on servers without the mod; a Cloth Config screen.
+- **Drafting**: gliders leave a fading wake trail, and flying in one gives a
+  forward boost plus a damped pull onto the wake centre line. Chains work, the
+  leader gains a small bonus, and per-role particles distinguish your own
+  vortices from a wake you are near and a wake you are riding.
+- **Camera assist**: while drafting, the view eases toward the wake ahead so a
+  turning leader can be followed. Strength is server governed; a client may
+  switch it off but never raise it.
+- **Version handshake**: clients report a protocol number on join, and a server
+  may ignore a mismatch, withhold effects with a message, or refuse entry.
+  Implemented on both Fabric and Paper. Vanilla players are never affected.
+
+Reviewed three times: a three-lens adversarial pass on the drafting feature
+(twelve findings, all fixed), and a senior mod developer critique of the whole
+branch, which is the source of most of what follows.
+
+## Decisions already made
+
+Do not relitigate these without a reason.
+
+- **The pull stays.** The critique argued for deleting it and keeping only the
+  boost. Rejected: the homing feel is wanted.
+- **Camera assist is reworked, not removed.**
+- **The Paper path becomes server authoritative.** Agreed as the highest value
+  structural change.
+- **Physics values are server pushed; presentation stays local.** Sounds,
+  volume, particles and the FOV kick are the player's own choice, partly for
+  accessibility. Camera assist is the exception because it steers you, so the
+  server sets its strength while the client keeps an opt out.
+- **Protocol version, not mod version.** `SlipstreamProtocol.VERSION` is 2 and
+  increments only when a wire format changes. It is duplicated in the Paper
+  module because the plugin cannot depend on the mod jar; both copies carry a
+  comment pointing at the other.
+- **Short payloads stay supported.** A 1.0.x plugin sends only the original six
+  doubles and the client keeps its own drafting defaults.
+
+## Remaining work, in order
+
+Each item is independent unless noted. The ordering is by what reaches users.
+
+### 4. Derive wake headings from leader position history
+
+Remote wake headings come from `getDeltaMovement()` on `RemotePlayer`, which is
+a multi-tick lerp toward an already-stale broadcast value. In a hard turn the
+wake centre line sits several blocks behind where the leader actually is, the
+look-divergence check fires, and the pull releases during exactly the turns the
+mechanic exists for. Derive heading from the leader's own interpolated position
+history instead.
+
+**Do this before item 5**, because it removes much of the reason the camera
+assist exists.
+
+### 5. Rework the camera assist so it never fights the player
+
+`assistCamera` tracks `assistedYaw` for its yield check but writes `setXRot`
+unconditionally, so pitch has no yield at all and a player looking down while
+drafting is fought every tick with no escape. `PLAYER_STEER_DEGREES` of `0.75`
+also means any real steering input kills the assist until the hand stops
+entirely, which is backwards. Both axes should yield, and input should ease the
+assist off rather than switch it off.
+
+### 6. Add a `/slipstream debug` overlay
+
+One screen: server state (vanilla, Fabric mod, Paper plugin, or disabled by
+policy and why), both protocol numbers, whether boost is allowed, distance to
+surface, proximity, speed against the active cap, and draft strength with the
+leader's name.
+
+Every support report will be "it doesn't work" or "something moved me", and both
+are answered by one screenshot. The critique rated this above any new mechanic.
+
+### 7. Make the Paper path server authoritative
+
+Have the plugin apply the ground effect itself with `setVelocity` on the server
+tick it already runs, so the boost fires `PlayerVelocityEvent`, which essentially
+every anticheat respects. Keep the client path for Fabric servers and
+singleplayer where the round trip would cost feel.
+
+Two payoffs: the anticheat exemption problem largely inverts, and a Paper server
+running Slipstream would work for players with **no mod installed at all**, which
+is the biggest distribution unlock available.
+
+### 8. Budget particles and sounds
+
+Nothing caps emission. One glider over water sends up to 22 particle packets
+every 3 ticks plus vortices and bursts every 2, each broadcast to every tracking
+player. Forty gliders is hundreds of packets per tick fanned out forty ways: a
+bandwidth and packet-count problem, not a CPU one. The client plays a positional
+sound per visible glider every 4 ticks on `SoundSource.BLOCKS`, which will
+exhaust the sound channel pool and start dropping *vanilla* sounds.
+
+Sort gliders by distance, emit fully for the nearest few, thin the rest with
+distance, hard cap sounds per tick.
+
+### 9. Fix the update checker, add a compatibility page
+
+`UpdateChecker` points at `project/elytra-slipstream` while the project id is
+`ESOV1nxn`. Even if the slug resolved, the Paper artifact publishes as
+`<version>-paper` so the equality check can never match, meaning every server
+console gets an update nag on every boot forever. Server owners will open an
+issue about this before anything else.
+
+Alongside it: a compatibility page with concrete anticheat exemption recipes for
+Grim, NCP, Vulcan and Matrix, and a `slipstream.use` permission node so the
+plugin only grants the payload to exempted players.
+
+### 10. Cleanup batch
+
+- `WakeTrackers.SERVER`, `server()`, `clearAll()` and `forLevel()` are dead since
+  server-side wake tracking was dropped.
+- A comment in `ClientFeelHandler` still points at a `SERVER_STOPPED` handler
+  that no longer exists.
+- `SlipstreamClient` sends the hello unconditionally, including to servers that
+  never advertised the channel. Guard with `canSend` so proxies stop logging
+  unknown-channel noise.
+- The Paper particle task reads `max-speed` default `3.0` and threshold `0.2`
+  while `sendConfig` reads `1.5` and `0.3`, so an older `config.yml` gates server
+  particles and clients differently.
+- `drawWakes` trails smoke behind your own solo flights.
+- The README promises a `/slipstream reload` command that does not exist on
+  Fabric.
+- `update.json` is ignored by Fabric Loader.
+
+### 11. Harden the mixin
+
+A single `@Inject(method = "travel", at = @At("TAIL"))` on `LivingEntity` with
+`defaultRequire: 1` is the entire physics surface, while the jar claims 26.1
+through 26.3. When Mojang next splits `travel`, users on a snapshot-tracking pack
+get a hard crash at launch.
+
+Add a headless client launch or gametest per supported version in CI. Detect and
+log when another movement mod's HEAD-cancelling mixin makes the TAIL injection
+never run, since particles keep appearing while forces silently stop. Switch the
+FOV mixin to MixinExtras `@ModifyReturnValue`: it has shipped inside Fabric
+Loader since 0.15, so the comment explaining why it was avoided is stale.
+
+### 12. Trim the config screen
+
+Nobody tunes a release angle in degrees from a GUI. The file-only bucket already
+exists for wake radius, spread, lifetime and sampling interval; the same applies
+to draft acceleration, release angle and speed multiplier. What remains should be
+volume, particles, FOV and a few toggles. The twenty-five row README config table
+is the same symptom.
+
+### 13. Tint each wake by whose it is
+
+Derive a hue from the player's identity so overlapping wakes in a pack are
+distinguishable. Needs a particle type carrying colour data rather than a fixed
+tint per type, so it pairs with item 16.
+
+### 14. Firework slingshot
+
+A leader popping a rocket leaves a brief, much stronger wake, giving followers a
+real slingshot. Emergent, uses an existing vanilla verb, and rewards flying as a
+group. Stamp wake samples recorded during a firework boost with a strength
+multiplier and shorter lifetime, and let the geometry read it.
+
+### 15. Drafting saves elytra durability
+
+Reduce durability cost while drafting, scaled by strength. Gives the mechanic a
+payoff on a survival server where nobody is racing. Server authoritative, so it
+lands naturally alongside item 7.
+
+### 16. Custom particle textures
+
+Generate the mod's own atlas procedurally. The shapes needed are abstract and
+radial, which procedural generation is good at, unlike character art.
+
+- An expanding **vortex ring** that thins over its frames, reading as disturbed
+  air rather than smoke. Vanilla has no sprite that does this, so it is the one
+  place custom art buys something tinting cannot fake.
+- A soft elongated **streak** for draft strength particles.
+- A fine **haze** for old wakes.
+
+Author greyscale with alpha so per-role tinting still applies and per-player wake
+hues become possible. Ship as animated sprite sequences so `setSpriteFromAge`
+keeps working.
+
+## Build notes
+
+- **Use JDK 25 for Gradle.** A fresh daemon may pick Java 27 and fail with
+  "Unsupported class file major version 71":
+  `export JAVA_HOME=/opt/homebrew/Cellar/openjdk@25/25.0.4.1/libexec/openjdk.jdk/Contents/Home`
+- The branch targets Minecraft 26.3. To build for 26.2, temporarily set
+  `minecraft_version=26.2`, `loader_version=0.19.3`,
+  `fabric_api_version=0.160.0+26.2`, `cloth_config_version=26.2.155`,
+  `modmenu_version=20.0.2`, and the plugin's `paper-api` to
+  `26.1.2.build.69-stable`. Revert all of it afterwards.
+- `./gradlew :test` targets the root project; `./gradlew build` covers both.
+- Commit style: imperative subject, no `Co-Authored-By` trailer, no em dashes
+  anywhere in code, comments or commit messages. Checkstyle rejects unused
+  imports and star imports.
+
+## What is not verified
+
+Everything on this branch has been flown briefly in singleplayer on Minecraft
+26.2. What has **not** been tested:
+
+- Drafting with two real players, which is the entire point of the feature.
+- Anything on a dedicated server, Fabric or Paper.
+- The version handshake end to end against a genuinely mismatched client.
+- Behaviour with more than a couple of gliders, which is what item 8 addresses.
