@@ -47,5 +47,7 @@ public class SlipstreamClient implements ClientModInitializer {
           ServerConfigOverride.clear();
           ServerConfigOverride.setSingleplayer(false);
         });
+
+    ClientFeelHandler.register();
   }
 }
