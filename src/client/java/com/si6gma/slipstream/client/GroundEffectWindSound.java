@@ -4,6 +4,7 @@ import com.si6gma.slipstream.GroundEffectMath;
 import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.network.ServerConfigOverride;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
@@ -33,13 +34,16 @@ public class GroundEffectWindSound extends AbstractTickableSoundInstance {
   @Override
   public void tick() {
     SlipstreamConfig cfg = ServerConfigOverride.get();
-    if (player.isRemoved() || !player.isFallFlying() || !cfg.soundsEnabled) {
+    if (player.isRemoved()
+        || Minecraft.getInstance().player != player
+        || !player.isFallFlying()
+        || !cfg.soundsEnabled) {
       stop();
       return;
     }
     double proximity = LocalGroundEffectState.proximity();
     if (proximity <= 0.0) {
-      if (++silentTicks > SILENT_TICKS_BEFORE_STOP) {
+      if (++silentTicks >= SILENT_TICKS_BEFORE_STOP) {
         stop();
         return;
       }

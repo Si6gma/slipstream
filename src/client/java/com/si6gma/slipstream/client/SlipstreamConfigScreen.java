@@ -70,7 +70,9 @@ public final class SlipstreamConfigScreen {
             .setDefaultValue(defaults.waterSprayHeightBlocks)
             .setMin(1.0)
             .setMax(256.0)
-            .setTooltip(serverNote)
+            .setTooltip(
+                serverNote,
+                Component.translatable("tooltip.slipstream.sprayCappedByEffectHeight"))
             .setSaveConsumer(v -> cfg.waterSprayHeightBlocks = v)
             .build());
 

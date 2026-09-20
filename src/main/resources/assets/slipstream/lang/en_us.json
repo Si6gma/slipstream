@@ -4,6 +4,7 @@
   "category.slipstream.visuals": "Visuals",
   "category.slipstream.audio": "Audio",
   "tooltip.slipstream.serverOverride": "When connected to a server running Slipstream, the server's value is used instead.",
+  "tooltip.slipstream.sprayCappedByEffectHeight": "Capped at the effect height when saved.",
   "option.slipstream.effectHeightBlocks": "Effect height (blocks)",
   "option.slipstream.accelerationPerTick": "Acceleration per tick",
   "option.slipstream.maxSpeedBlocksPerTick": "Max speed (blocks per tick)",
