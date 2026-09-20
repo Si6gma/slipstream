@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 171 tests pass across both modules.
+`./gradlew build` is green and 173 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -220,6 +220,10 @@ Everything on this branch has been flown briefly in singleplayer on Minecraft
 26.2. What has **not** been tested:
 
 - Drafting with two real players, which is the entire point of the feature.
+  `DraftingTurnTest` now simulates a leader and a follower through a ninety
+  degree turn against the real tracker and geometry, which is a regression guard
+  and not a substitute: it cannot tell you whether the pull *feels* right, and
+  it models neither latency nor interpolation. Two clients still have to fly it.
 - Anything on a dedicated server, Fabric or Paper.
 - The version handshake end to end against a genuinely mismatched client.
 - Behaviour with more than a couple of gliders, which is what item 8 addresses.
