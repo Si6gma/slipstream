@@ -24,3 +24,6 @@ run/
 
 # macOS
 .DS_Store
+
+# Minecraft client run logs
+logs/
