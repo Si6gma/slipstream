@@ -28,6 +28,7 @@ public final class ClientFeelHandler {
   private static final RandomSource RANDOM = RandomSource.create();
 
   private static float fovKick;
+  private static GroundEffectWindSound wind;
 
   private ClientFeelHandler() {}
 
@@ -122,6 +123,13 @@ public final class ClientFeelHandler {
     }
   }
 
-  // Filled in by the wind sound task.
-  private static void startWindIfNeeded(Minecraft client, LocalPlayer local, SlipstreamConfig cfg) {}
+  private static void startWindIfNeeded(Minecraft client, LocalPlayer local, SlipstreamConfig cfg) {
+    if (!cfg.soundsEnabled || !local.isFallFlying() || LocalGroundEffectState.proximity() <= 0.0) {
+      return;
+    }
+    if (wind == null || !client.getSoundManager().isActive(wind)) {
+      wind = new GroundEffectWindSound(local);
+      client.getSoundManager().play(wind);
+    }
+  }
 }
