@@ -1,7 +1,10 @@
 package com.si6gma.slipstream.paper;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -11,27 +14,43 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRegisterChannelEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 public class SlipstreamPlugin extends JavaPlugin implements Listener, TabCompleter {
 
   static final String CHANNEL = "slipstream:server_config";
+  private static final String HELLO_CHANNEL = "slipstream:hello";
   private static final List<String> SUBCOMMANDS = List.of("enable", "disable", "reload");
 
   private GroundEffectTask task;
   private boolean effectEnabled = true;
+  private int handshakeTimeoutTicks = 60;
+  private VersionPolicy.EnforcementPolicy versionEnforcement = VersionPolicy.EnforcementPolicy.DISABLE;
+
+  // Final classification per player for the session, populated once a hello arrives or the
+  // handshake deadline passes. A vanilla player (never listening on CHANNEL) is never added.
+  private final Map<UUID, VersionPolicy.ClientState> handshakeState = new HashMap<>();
+
+  // Pending deadline tasks, keyed by player, so classifying a player early (hello arrives) can
+  // cancel it and so a disconnect can clean it up. Emptied when a player is classified or leaves.
+  private final Map<UUID, BukkitTask> handshakeDeadlines = new HashMap<>();
 
   @Override
   public void onEnable() {
     saveDefaultConfig();
     effectEnabled = getConfig().getBoolean("effect-enabled", true);
+    handshakeTimeoutTicks = getConfig().getInt("handshake-timeout-ticks", 60);
+    versionEnforcement = parseEnforcementPolicy(getConfig().getString("version-enforcement", "disable"));
     task = new GroundEffectTask(this);
     task.runTaskTimer(this, 0L, 1L);
     getServer().getPluginManager().registerEvents(this, this);
     getServer().getPluginManager().registerEvents(task, this);
     getServer().getMessenger().registerOutgoingPluginChannel(this, CHANNEL);
+    getServer().getMessenger().registerIncomingPluginChannel(this, HELLO_CHANNEL, this::onHelloMessage);
     getCommand("slipstream").setTabCompleter(this);
     UpdateChecker.checkAsync(this);
     getLogger().info("Slipstream enabled.");
@@ -44,6 +63,10 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
       task.cleanup();
     }
     getServer().getMessenger().unregisterOutgoingPluginChannel(this, CHANNEL);
+    getServer().getMessenger().unregisterIncomingPluginChannel(this, HELLO_CHANNEL);
+    handshakeDeadlines.values().forEach(BukkitTask::cancel);
+    handshakeDeadlines.clear();
+    handshakeState.clear();
   }
 
   public boolean isEffectEnabled() {
@@ -52,11 +75,20 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
 
   @EventHandler
   public void onJoin(PlayerJoinEvent e) {
+    beginHandshake(e.getPlayer());
     if (!getConfig().getBoolean("override-clients", true)) return;
     Player player = e.getPlayer();
     if (player.getListeningPluginChannels().contains(CHANNEL)) {
       Bukkit.getScheduler().runTaskLater(this, () -> sendConfigForWorld(player, player.getWorld().getName()), 2L);
     }
+  }
+
+  @EventHandler
+  public void onQuit(PlayerQuitEvent e) {
+    UUID id = e.getPlayer().getUniqueId();
+    BukkitTask deadline = handshakeDeadlines.remove(id);
+    if (deadline != null) deadline.cancel();
+    handshakeState.remove(id);
   }
 
   @EventHandler
@@ -77,6 +109,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
 
   private void sendConfigForWorld(Player player, String worldName) {
     if (!player.isOnline()) return;
+    if (!isVersionGateOpen(player)) return;
     if (getConfig().getStringList("disabled-worlds").contains(worldName)) {
       sendDisabledConfig(player);
     } else if (effectEnabled) {
@@ -84,6 +117,100 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     } else {
       sendDisabledConfig(player);
     }
+  }
+
+  /**
+   * Whether a config send may proceed for this player. Under {@code off} every send goes through,
+   * restoring pre-handshake behaviour exactly; otherwise a send requires having classified the
+   * player as compatible.
+   */
+  private boolean isVersionGateOpen(Player player) {
+    if (versionEnforcement == VersionPolicy.EnforcementPolicy.OFF) return true;
+    return handshakeState.get(player.getUniqueId()) == VersionPolicy.ClientState.COMPATIBLE;
+  }
+
+  /**
+   * Starts tracking a joining player's handshake, unless they are vanilla (never announced
+   * {@link #CHANNEL}) or already classified because their hello arrived before this ran.
+   */
+  private void beginHandshake(Player player) {
+    UUID id = player.getUniqueId();
+    if (handshakeState.containsKey(id)) return;
+    if (!player.getListeningPluginChannels().contains(CHANNEL)) return;
+    BukkitTask deadline =
+        Bukkit.getScheduler()
+            .runTaskLater(this, () -> onHandshakeDeadline(id), handshakeTimeoutTicks);
+    handshakeDeadlines.put(id, deadline);
+  }
+
+  private void onHelloMessage(String channel, Player player, byte[] message) {
+    UUID id = player.getUniqueId();
+    // Classification happens once: a second hello is ignored.
+    if (handshakeState.containsKey(id)) return;
+    BukkitTask deadline = handshakeDeadlines.remove(id);
+    if (deadline != null) deadline.cancel();
+    HelloCodec.Hello hello = HelloCodec.decode(message);
+    VersionPolicy.ClientState state =
+        hello.protocolVersion() == SlipstreamProtocol.VERSION
+            ? VersionPolicy.ClientState.COMPATIBLE
+            : VersionPolicy.ClientState.MISMATCHED;
+    classifyAndAct(player, state, hello.protocolVersion());
+  }
+
+  private void onHandshakeDeadline(UUID id) {
+    handshakeDeadlines.remove(id);
+    if (handshakeState.containsKey(id)) return; // hello arrived just as the deadline fired
+    Player player = Bukkit.getPlayer(id);
+    if (player == null || !player.isOnline()) return;
+    classifyAndAct(player, VersionPolicy.ClientState.LEGACY, HelloCodec.INVALID_PROTOCOL_VERSION);
+  }
+
+  private void classifyAndAct(Player player, VersionPolicy.ClientState state, int clientProtocol) {
+    handshakeState.put(player.getUniqueId(), state);
+    VersionPolicy.Action action = VersionPolicy.decide(state, versionEnforcement);
+    switch (action) {
+      case SEND_CONFIG -> sendConfigForWorld(player, player.getWorld().getName());
+      case WITHHOLD_AND_MESSAGE -> player.sendMessage(disableMessage(clientProtocol));
+      case KICK -> player.kickPlayer(kickMessage(clientProtocol));
+      case DO_NOTHING -> {}
+    }
+  }
+
+  private VersionPolicy.EnforcementPolicy parseEnforcementPolicy(String value) {
+    return switch (value) {
+      case "off" -> VersionPolicy.EnforcementPolicy.OFF;
+      case "disable" -> VersionPolicy.EnforcementPolicy.DISABLE;
+      case "kick" -> VersionPolicy.EnforcementPolicy.KICK;
+      default -> {
+        getLogger()
+            .warning("Unrecognised version-enforcement '" + value + "', falling back to disable.");
+        yield VersionPolicy.EnforcementPolicy.DISABLE;
+      }
+    };
+  }
+
+  /** The client's protocol is unknown when it never reported one, whether legacy or malformed. */
+  private static String reasonSentence(int clientProtocol) {
+    if (clientProtocol == HelloCodec.INVALID_PROTOCOL_VERSION) {
+      return "Your version is too old to report its protocol.";
+    }
+    return "This server runs protocol "
+        + SlipstreamProtocol.VERSION
+        + " and your version speaks protocol "
+        + clientProtocol
+        + ".";
+  }
+
+  private static String disableMessage(int clientProtocol) {
+    return "Slipstream effects are disabled here. "
+        + reasonSentence(clientProtocol)
+        + " Update Slipstream to use it on this server.";
+  }
+
+  private static String kickMessage(int clientProtocol) {
+    return "Slipstream effects are disabled here. "
+        + reasonSentence(clientProtocol)
+        + " Update Slipstream to join this server.";
   }
 
   @Override
@@ -212,6 +339,8 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   public void broadcastConfig() {
     reloadConfig();
     effectEnabled = getConfig().getBoolean("effect-enabled", true);
+    handshakeTimeoutTicks = getConfig().getInt("handshake-timeout-ticks", 60);
+    versionEnforcement = parseEnforcementPolicy(getConfig().getString("version-enforcement", "disable"));
     if (task != null) task.reload();
     for (Player p : Bukkit.getOnlinePlayers()) {
       if (p.isOnline() && p.getListeningPluginChannels().contains(CHANNEL))

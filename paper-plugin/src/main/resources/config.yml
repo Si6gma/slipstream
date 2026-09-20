@@ -131,3 +131,28 @@ draft-camera-assist: true
 # leader closely; lower it toward 0.15 if it feels like the game is flying for
 # you rather than helping you.
 draft-camera-assist-strength: 0.5
+
+# ---------------------------------------------------------------------------
+# Version handshake
+#
+# A joining Fabric client reports its protocol version once, on join. A client
+# whose protocol does not match this server's is either left alone with no
+# effects or refused entry, depending on version-enforcement below. A vanilla
+# client (no mod at all) is never touched under any setting.
+# ---------------------------------------------------------------------------
+
+# What to do about a client whose protocol does not match this server's, or
+# one that never reports a protocol at all (an old release that predates this
+# check). One of:
+#   off     - send the config payload anyway, exactly like before this feature.
+#   disable - withhold the payload and tell the player why. They keep playing
+#             with Slipstream doing nothing for them. The default.
+#   kick    - disconnect the player with a message naming the required
+#             protocol.
+# An unrecognised value falls back to disable and logs a warning.
+version-enforcement: disable
+
+# How long, in ticks (20 ticks = 1 second), a listening client has to report
+# its protocol before it is treated as too old to have ever sent one. Three
+# seconds is comfortably longer than a hello needs to arrive.
+handshake-timeout-ticks: 60
