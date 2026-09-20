@@ -6,8 +6,15 @@ import com.si6gma.slipstream.GroundEffectSample;
 import com.si6gma.slipstream.GroundEffectSampler;
 import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.LocalParticleSink;
+import com.si6gma.slipstream.ModParticles;
 import com.si6gma.slipstream.SlipstreamConfig;
+import com.si6gma.slipstream.draft.DraftQuery;
+import com.si6gma.slipstream.draft.DraftingMath;
+import com.si6gma.slipstream.draft.WakeSample;
+import com.si6gma.slipstream.draft.WakeTrackers;
 import com.si6gma.slipstream.network.ServerConfigOverride;
+import java.util.List;
+import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -26,9 +33,11 @@ public final class ClientFeelHandler {
 
   private static final double RANGE_SQ = 64.0 * 64.0;
   private static final RandomSource RANDOM = RandomSource.create();
+  private static final double DRAFT_ENTRY_THRESHOLD = 0.25;
 
   private static float fovKick;
   private static GroundEffectWindSound wind;
+  private static boolean wasDrafting;
 
   private ClientFeelHandler() {}
 
@@ -47,6 +56,8 @@ public final class ClientFeelHandler {
     if (local == null || level == null) {
       fovKick = 0.0f;
       LocalGroundEffectState.clear();
+      wasDrafting = false;
+      WakeTrackers.clearAll();
       return;
     }
 
@@ -69,8 +80,6 @@ public final class ClientFeelHandler {
             && !ServerConfigOverride.isActive()
             && !client.hasSingleplayerServer();
     LocalParticleSink sink = localParticles ? new LocalParticleSink(level, RANDOM) : null;
-    // Nothing below consumes the sample when sounds are off and local particles are inactive.
-    if (!cfg.soundsEnabled && sink == null) return;
     Vec3 eye = local.position();
 
     for (Player p : level.players()) {
@@ -79,12 +88,75 @@ public final class ClientFeelHandler {
       if (remote && !cfg.remotePlayerParticles) continue;
       if (p.position().distanceToSqr(eye) > RANGE_SQ) continue;
 
+      Vec3 v = p.getDeltaMovement();
+      double wakeSpeed = Math.sqrt(v.x * v.x + v.z * v.z);
+      if (wakeSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
+        WakeTrackers.client()
+            .record(
+                p.getUUID(),
+                p.position(),
+                new Vec3(v.x / wakeSpeed, 0, v.z / wakeSpeed),
+                wakeSpeed,
+                local.tickCount,
+                cfg);
+      }
+
       GroundEffectSample s = ((GroundEffectSampler) p).slipstream$sample(cfg);
       if (s == null) continue;
       Vec3 pos = p.position();
 
       if (cfg.soundsEnabled) playSurfaceSounds(level, p, s, cfg, pos);
       if (sink != null) GroundEffectParticles.emit(s, cfg, p.tickCount, RANDOM, pos, sink);
+    }
+
+    WakeTrackers.client().prune(local.tickCount, cfg);
+    if (cfg.particlesEnabled && cfg.draftParticlesEnabled) {
+      drawWakes(level, cfg, local.tickCount);
+    }
+
+    boolean drafting = false;
+    if (cfg.draftingEnabled) {
+      for (UUID id : WakeTrackers.client().ids()) {
+        if (id.equals(local.getUUID())) continue;
+        DraftQuery q =
+            DraftingMath.nearest(
+                WakeTrackers.client().trailFor(id), local.position(), local.tickCount, cfg);
+        if (q != null && q.strength() > DRAFT_ENTRY_THRESHOLD) {
+          drafting = true;
+          break;
+        }
+      }
+    }
+    if (drafting && !wasDrafting && cfg.soundsEnabled) {
+      level.playLocalSound(
+          local.getX(),
+          local.getY(),
+          local.getZ(),
+          SoundEvents.PLAYER_ATTACK_SWEEP,
+          SoundSource.PLAYERS,
+          (float) (0.35 * cfg.soundVolume),
+          1.6f,
+          false);
+    }
+    wasDrafting = drafting;
+  }
+
+  private static void drawWakes(ClientLevel level, SlipstreamConfig cfg, int now) {
+    var vortex = ModParticles.wingVortex();
+    if (vortex == null) return;
+    double lifetimeSeconds = cfg.wakeLifetimeTicks / 20.0;
+    if (lifetimeSeconds <= 0.0) return;
+    for (UUID id : WakeTrackers.client().ids()) {
+      List<WakeSample> samples = WakeTrackers.client().trailFor(id).samples();
+      // Every third sample keeps the wake readable without flooding the particle budget.
+      for (int i = 0; i < samples.size(); i += 3) {
+        WakeSample s = samples.get(i);
+        double fade = 1.0 - Math.min(1.0, ((now - s.tick()) / 20.0) / lifetimeSeconds);
+        if (fade <= 0.15) continue;
+        // Drawing sparsely rather than faintly: an old wake thins instead of dimming.
+        if (RANDOM.nextFloat() > fade) continue;
+        level.addParticle(vortex, s.position().x, s.position().y, s.position().z, 0, 0, 0);
+      }
     }
   }
 
