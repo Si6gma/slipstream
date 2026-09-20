@@ -9,7 +9,7 @@ import com.si6gma.slipstream.LocalParticleSink;
 import com.si6gma.slipstream.ModParticles;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.draft.DraftQuery;
-import com.si6gma.slipstream.draft.DraftingMath;
+import com.si6gma.slipstream.draft.DraftScan;
 import com.si6gma.slipstream.draft.WakeSample;
 import com.si6gma.slipstream.draft.WakeTrackers;
 import com.si6gma.slipstream.draft.WakeTrail;
@@ -121,23 +121,23 @@ public final class ClientFeelHandler {
 
     WakeTrackers.client().prune(local.tickCount, cfg);
 
-    // Find the strongest wake, not merely the first one that qualifies, so the wake drawn as
-    // ridden is the same one the flight code actually applies forces from.
-    UUID draftedLeader = null;
-    DraftQuery draftedQuery = null;
-    if (cfg.draftingEnabled) {
-      for (UUID id : WakeTrackers.client().ids()) {
-        if (id.equals(local.getUUID())) continue;
-        DraftQuery q =
-            DraftingMath.nearest(
-                WakeTrackers.client().trailFor(id), local.position(), local.tickCount, cfg);
-        if (q != null && (draftedQuery == null || q.strength() > draftedQuery.strength())) {
-          draftedQuery = q;
-          draftedLeader = id;
-        }
-      }
-    }
-    boolean drafting = draftedQuery != null && draftedQuery.strength() > DRAFT_ENTRY_THRESHOLD;
+    // The same search the flight code runs, so what is drawn is always what is being boosted.
+    DraftScan.Target draftTarget =
+        DraftScan.strongest(
+            level.players(),
+            local,
+            local.position(),
+            WakeTrackers.client(),
+            local.tickCount,
+            RANGE_SQ,
+            cfg);
+    UUID draftedLeader = draftTarget == null ? null : draftTarget.leaderId();
+    DraftQuery draftedQuery = draftTarget == null ? null : draftTarget.query();
+    // Any draft at all gets a visual, because the flight code applies force at any strength above
+    // zero and an unexplained sideways shove is worse than a faint cue. The entry sound keeps a
+    // threshold so it does not chirp every time you clip the edge of someone's wake.
+    boolean drafting = draftedQuery != null;
+    boolean worthAnnouncing = drafting && draftedQuery.strength() > DRAFT_ENTRY_THRESHOLD;
 
     if (cfg.particlesEnabled && cfg.draftParticlesEnabled) {
       drawWakes(level, cfg, local.tickCount, drafting ? draftedLeader : null);
@@ -150,7 +150,7 @@ public final class ClientFeelHandler {
       assistedYaw = Float.NaN;
     }
 
-    if (drafting && !wasDrafting && cfg.soundsEnabled) {
+    if (worthAnnouncing && !wasDrafting && cfg.soundsEnabled) {
       level.playLocalSound(
           local.getX(),
           local.getY(),
@@ -161,7 +161,7 @@ public final class ClientFeelHandler {
           1.6f,
           false);
     }
-    wasDrafting = drafting;
+    wasDrafting = worthAnnouncing;
   }
 
   /**

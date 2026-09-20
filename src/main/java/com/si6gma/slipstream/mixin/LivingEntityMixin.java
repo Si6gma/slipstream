@@ -8,6 +8,7 @@ import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.ServerParticleSink;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.draft.DraftQuery;
+import com.si6gma.slipstream.draft.DraftScan;
 import com.si6gma.slipstream.draft.DraftingMath;
 import com.si6gma.slipstream.draft.WakeTracker;
 import com.si6gma.slipstream.draft.WakeTrackers;
@@ -132,17 +133,18 @@ public class LivingEntityMixin implements GroundEffectSampler {
     if (hSpeed < 1.0e-4) return velocity;
     Vec3 heading = new Vec3(velocity.x / hSpeed, 0, velocity.z / hSpeed);
 
-    DraftQuery best = null;
+    // Shared with the client visuals so the wake drawn as ridden is always the wake being
+    // boosted. Running two searches over different candidate sets let them disagree.
+    DraftScan.Target target =
+        DraftScan.strongest(
+            player.level().players(), player, pos, tracker, now, EGE$DRAFT_RANGE_SQ, cfg);
+    DraftQuery best = target == null ? null : target.query();
+
     int drafterCount = 0;
     WakeTrail myTrail = tracker.trailFor(player.getUUID());
-
     for (Player other : player.level().players()) {
       if (other == player) continue;
       if (other.position().distanceToSqr(pos) > EGE$DRAFT_RANGE_SQ) continue;
-
-      DraftQuery q = DraftingMath.nearest(tracker.trailFor(other.getUUID()), pos, now, cfg);
-      if (q != null && (best == null || q.strength() > best.strength())) best = q;
-
       // Anyone sitting in my own wake earns me the leader bonus.
       if (other.isFallFlying()
           && DraftingMath.nearest(myTrail, other.position(), now, cfg) != null) {
