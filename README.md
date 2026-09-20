@@ -55,6 +55,12 @@ particles and sounds (rendered locally, for you and any other gliders you can
 see), but no boost, no lift, and no FOV kick. Nothing that could look like a
 speed hack ever runs without the server's say so.
 
+A server running Slipstream also decides which versions may use it. Your client
+reports the network protocol it speaks when you join, and a server can either
+ignore a mismatch, let you play with the effects switched off, or refuse the
+connection. The default is to switch the effects off rather than turn anyone
+away. Players without the mod at all are never affected by this.
+
 ---
 
 ## Installation
@@ -85,6 +91,7 @@ to all online players live.
 | Max speed          | `1.5`   | Hard ceiling in blocks/tick (vanilla firework peaks ~1.5) |
 | Water spray height | `5.0`   | How close to water before spray kicks in                  |
 | Lift strength      | `0.6`   | Upward force when skimming level                          |
+| Speed threshold    | `0.3`   | Fraction of max speed before lift and vortices start      |
 | Particles enabled  | `true`  | Set to `false` to disable all ground effect particles     |
 | Sounds enabled     | `true`  | Wind, wake, and skim sounds (client only)                 |
 | Sound volume       | `1.0`   | 0 to 2, multiplies all Slipstream sounds (client only)   |
@@ -95,11 +102,13 @@ to all online players live.
 | Drafting           | `true`  | Ride other players' wakes (server pushed)                 |
 | Draft acceleration | `0.08`  | Speed gained per tick at the centre of a fresh wake        |
 | Draft speed mult.  | `1.0`   | Ceiling while drafting, as a multiple of max speed         |
-| Pull strength      | `0.25`  | Fraction of your offset from the wake corrected per tick   |
+| Pull strength      | `0.25`  | How firmly you are steered onto the wake line              |
 | Pull release angle | `35.0`  | Look this far from the wake and the pull lets go           |
 | Wake particles     | `true`  | Draw other players' wakes (client only)                    |
 | Camera assist      | `true`  | Ease your view toward the wake; you may always turn it off  |
 | Camera assist str. | `0.5`   | 0 to 0.5, how hard the view eases (server pushed)           |
+| Version enforcement | `disable` | Server side: `off`, `disable` or `kick` a mismatched client |
+| Handshake timeout  | `60`    | Server side: ticks to wait for a client to report its version |
 
 The Paper plugin also has `override-clients` (default `true`) to push server
 values to connecting clients, and `disabled-worlds` to opt specific worlds out

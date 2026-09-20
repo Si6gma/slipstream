@@ -35,8 +35,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   pull toward their line, released by looking away from the wake
 - Wakes are a fading trail of the leader's actual path, so they curve through
   turns and stay draftable for a few seconds after they pass
-- Drafting can exceed the normal speed cap by a configurable margin so
-  overtaking is possible
+- Drafting can be allowed to exceed the normal speed cap, making overtaking
+  possible. The shipped default keeps the normal cap, so drafting is a way to
+  catch up fast rather than to fly faster than anyone else
 - Drafting chains, and a leader gains a small bonus for flyers in their wake
 - Wake particles and a cue when you enter a slipstream
 - Drafting settings in the config screen, and server pushed drafting physics
@@ -52,9 +53,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   registration
 - Wind rush sound no longer keeps looping from a stale position after a
   portal or death respawn changes dimension
+- The drafting pull no longer overshoots the wake line and springs back. It
+  steers your closing speed rather than shoving your position, so you settle
+  onto the line, and one tick can never carry you across it
 
 ### Changed
 
+- The Paper plugin pushes drafting settings, so a server controls drafting
+  strength rather than each client deciding for itself
+- Camera assist strength is server governed, since a stronger assist holds a
+  wake line better than a weaker one. Clients may still switch it off entirely
+- Drafting defaults retuned after in game testing: much stronger acceleration,
+  the normal speed cap kept, and a firmer camera assist
 - Particle geometry moved out of the mixin into `GroundEffectParticles` behind
   a `ParticleSink`, with unit tests
 - `ServerConfigPayload` carries drafting settings. The client accepts a payload
