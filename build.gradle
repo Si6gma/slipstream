@@ -34,6 +34,10 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// Plain compileOnly/localRuntime, not modCompileOnly/modLocalRuntime: this Minecraft version
+	// ships with named (non-obfuscated) mappings, so Loom has no remapping to do here and
+	// loom.createRemapConfigurations(...) fails with "Cannot create remap configurations in a
+	// non-obfuscated environment". Confirmed directly against this project's Loom 1.18.2.
 	compileOnly "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
 	localRuntime "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
 	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
