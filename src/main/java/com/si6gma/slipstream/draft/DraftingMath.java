@@ -85,4 +85,51 @@ public final class DraftingMath {
             : bestPoint.subtract(follower).scale(1.0 / lateralOffset);
     return new DraftQuery(bestPoint, toCentre, lateralOffset, ageSeconds, strength, bestHeading);
   }
+
+  /** Speed ceiling while drafting. Above the normal cap so a follower can actually overtake. */
+  public static double draftCap(SlipstreamConfig cfg) {
+    return cfg.maxSpeedBlocksPerTick * cfg.draftSpeedMultiplier;
+  }
+
+  /**
+   * Forward acceleration to add this tick. The caller applies it along the follower's own heading,
+   * never the leader's, so drafting accelerates without steering.
+   */
+  public static double boostDelta(double hSpeed, double strength, SlipstreamConfig cfg) {
+    if (!cfg.draftingEnabled || strength <= 0.0) return 0.0;
+    double cap = draftCap(cfg);
+    if (hSpeed >= cap) return 0.0;
+    return Math.min(strength * cfg.draftAccelerationPerTick, cap - hSpeed);
+  }
+
+  /**
+   * Magnitude of the pull toward the wake centreline, applied along {@link DraftQuery#toCentre}.
+   * Mirrors the ground effect lift force: it corrects error toward zero, never overshoots, and
+   * releases entirely once the player looks far enough away from the wake to mean it.
+   *
+   * <p>lookDivergenceDeg is the angle between the player's horizontal look direction and the wake
+   * heading at the nearest point.
+   */
+  public static double pullForce(
+      double lateralError, double lookDivergenceDeg, double strength, SlipstreamConfig cfg) {
+    if (!cfg.draftingEnabled || strength <= 0.0 || cfg.draftPullStrength <= 0.0) return 0.0;
+    if (lateralError <= 0.0) return 0.0;
+    double release = cfg.draftReleaseAngleDeg;
+    if (release <= 0.0) return 0.0;
+    double divergence = Math.abs(lookDivergenceDeg);
+    if (divergence >= release) return 0.0;
+    double angleFactor = 1.0 - (divergence / release);
+    double pull = lateralError * angleFactor * strength * cfg.draftPullStrength;
+    return Math.min(pull, lateralError);
+  }
+
+  /**
+   * Forward acceleration a leader gains from flyers in its wake. True to the aerodynamics, where a
+   * trailing body reduces the leader's wake drag. Deliberately far smaller than drafting itself.
+   */
+  public static double leaderBonus(int drafterCount, SlipstreamConfig cfg) {
+    if (!cfg.draftingEnabled || drafterCount <= 0) return 0.0;
+    int counted = Math.min(drafterCount, cfg.draftLeaderBonusMaxDrafters);
+    return counted * cfg.draftLeaderBonusPerDrafter * cfg.draftAccelerationPerTick;
+  }
 }
