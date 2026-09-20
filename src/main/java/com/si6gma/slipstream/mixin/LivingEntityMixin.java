@@ -167,10 +167,23 @@ public class LivingEntityMixin implements GroundEffectSampler {
     }
 
     double bonus = DraftingMath.leaderBonus(drafterCount, cfg);
-    if (bonus > 0.0 && hSpeed < cfg.maxSpeedBlocksPerTick) {
-      // A leader keeps the normal ceiling; only an actual drafter gets the raised one.
-      double room = cfg.maxSpeedBlocksPerTick - hSpeed;
-      result = result.add(heading.scale(Math.min(bonus, room)));
+    if (bonus > 0.0) {
+      double currentHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);
+      if (currentHSpeed < cfg.maxSpeedBlocksPerTick) {
+        // A leader keeps the normal ceiling; only an actual drafter gets the raised one.
+        double room = cfg.maxSpeedBlocksPerTick - currentHSpeed;
+        result = result.add(heading.scale(Math.min(bonus, room)));
+      }
+    }
+
+    // The pull can point partly forward when the nearest wake point is ahead of the follower, so
+    // the composed velocity is clamped here. Without this the pull bypasses the ceiling a server
+    // configured through draftSpeedMultiplier.
+    double finalHSpeed = Math.sqrt(result.x * result.x + result.z * result.z);
+    double cap = DraftingMath.draftCap(cfg);
+    if (finalHSpeed > cap && finalHSpeed > 1.0e-6) {
+      double scale = cap / finalHSpeed;
+      result = new Vec3(result.x * scale, result.y, result.z * scale);
     }
 
     return result;
@@ -198,7 +211,17 @@ public class LivingEntityMixin implements GroundEffectSampler {
 
     GroundEffectSample sample = slipstream$sample(cfg);
     if (sample == null) {
-      if (isLocalPlayer) LocalGroundEffectState.clear();
+      if (isLocalPlayer) {
+        LocalGroundEffectState.clear();
+        // Drafting does not need a surface below. Away from the ground there is no ground effect
+        // lift to yield to, so the pull keeps its full vertical component (proximity zero).
+        Player player = (Player) (Object) this;
+        if (ServerConfigOverride.isBoostAllowed() && cfg.draftingEnabled) {
+          Vec3 current = self.getDeltaMovement();
+          Vec3 drafted = ege$applyDrafting(player, current, cfg, 0.0);
+          if (drafted != current) player.setDeltaMovement(drafted);
+        }
+      }
       return;
     }
 
