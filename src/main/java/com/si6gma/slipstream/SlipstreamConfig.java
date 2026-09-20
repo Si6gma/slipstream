@@ -31,6 +31,13 @@ public class SlipstreamConfig {
   public double draftLeaderBonusPerDrafter = 0.15;
   public int draftLeaderBonusMaxDrafters = 3;
   public boolean draftParticlesEnabled = true;
+  // Client only. Eases your view toward the wake so following a turning leader does not fight you.
+  public boolean draftCameraAssist = true;
+  public double draftCameraAssistStrength = 0.15;
+
+  // Version handshake. Server side only; the client ignores these.
+  public String versionEnforcement = "disable";
+  public int handshakeTimeoutTicks = 60;
 
   public void validatePostLoad() {
     if (!Double.isFinite(effectHeightBlocks)) effectHeightBlocks = 20.0;
@@ -48,6 +55,7 @@ public class SlipstreamConfig {
     if (!Double.isFinite(wakeBaseRadius)) wakeBaseRadius = 1.5;
     if (!Double.isFinite(wakeSpreadRate)) wakeSpreadRate = 1.2;
     if (!Double.isFinite(draftLeaderBonusPerDrafter)) draftLeaderBonusPerDrafter = 0.15;
+    if (!Double.isFinite(draftCameraAssistStrength)) draftCameraAssistStrength = 0.15;
     effectHeightBlocks = Math.max(1.0, Math.min(effectHeightBlocks, 256.0));
     accelerationPerTick = Math.max(0.0, Math.min(accelerationPerTick, 1.0));
     maxSpeedBlocksPerTick = Math.max(0.1, Math.min(maxSpeedBlocksPerTick, 20.0));
@@ -66,6 +74,15 @@ public class SlipstreamConfig {
     wakeSampleIntervalTicks = Math.max(1, Math.min(wakeSampleIntervalTicks, 20));
     draftLeaderBonusPerDrafter = Math.max(0.0, Math.min(draftLeaderBonusPerDrafter, 1.0));
     draftLeaderBonusMaxDrafters = Math.max(0, Math.min(draftLeaderBonusMaxDrafters, 16));
+    draftCameraAssistStrength = Math.max(0.0, Math.min(draftCameraAssistStrength, 0.5));
+    handshakeTimeoutTicks = Math.max(20, Math.min(handshakeTimeoutTicks, 600));
+    if (!"off".equals(versionEnforcement)
+        && !"disable".equals(versionEnforcement)
+        && !"kick".equals(versionEnforcement)) {
+      Slipstream.LOGGER.warn(
+          "Unrecognised versionEnforcement '{}', falling back to 'disable'", versionEnforcement);
+      versionEnforcement = "disable";
+    }
   }
 
   /** Returns an independent copy. Used so edits never mutate a config another thread is reading. */
@@ -96,6 +113,10 @@ public class SlipstreamConfig {
     c.draftLeaderBonusPerDrafter = draftLeaderBonusPerDrafter;
     c.draftLeaderBonusMaxDrafters = draftLeaderBonusMaxDrafters;
     c.draftParticlesEnabled = draftParticlesEnabled;
+    c.draftCameraAssist = draftCameraAssist;
+    c.draftCameraAssistStrength = draftCameraAssistStrength;
+    c.versionEnforcement = versionEnforcement;
+    c.handshakeTimeoutTicks = handshakeTimeoutTicks;
     return c;
   }
 }

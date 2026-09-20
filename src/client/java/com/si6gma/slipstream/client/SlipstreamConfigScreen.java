@@ -119,6 +119,18 @@ public final class SlipstreamConfigScreen {
             .setSaveConsumer(v -> cfg.draftReleaseAngleDeg = v)
             .build());
     drafting.addEntry(
+        e.startBooleanToggle(label("draftCameraAssist"), cfg.draftCameraAssist)
+            .setDefaultValue(defaults.draftCameraAssist)
+            .setSaveConsumer(v -> cfg.draftCameraAssist = v)
+            .build());
+    drafting.addEntry(
+        e.startDoubleField(label("draftCameraAssistStrength"), cfg.draftCameraAssistStrength)
+            .setDefaultValue(defaults.draftCameraAssistStrength)
+            .setMin(0.0)
+            .setMax(0.5)
+            .setSaveConsumer(v -> cfg.draftCameraAssistStrength = v)
+            .build());
+    drafting.addEntry(
         e.startBooleanToggle(label("draftParticlesEnabled"), cfg.draftParticlesEnabled)
             .setDefaultValue(defaults.draftParticlesEnabled)
             .setSaveConsumer(v -> cfg.draftParticlesEnabled = v)

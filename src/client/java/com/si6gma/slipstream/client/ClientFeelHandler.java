@@ -21,6 +21,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -38,6 +39,10 @@ public final class ClientFeelHandler {
   private static float fovKick;
   private static GroundEffectWindSound wind;
   private static boolean wasDrafting;
+  /** How far we left the view last tick, so a larger change means the player steered. NaN = idle. */
+  private static float assistedYaw = Float.NaN;
+  private static final float PLAYER_STEER_DEGREES = 0.75f;
+  private static final double AIM_LOOKAHEAD_BLOCKS = 8.0;
 
   private ClientFeelHandler() {}
 
@@ -139,6 +144,12 @@ public final class ClientFeelHandler {
       if (drafting) drawDraftStrength(level, local, draftedQuery);
     }
 
+    if (drafting) {
+      assistCamera(local, draftedQuery, cfg);
+    } else {
+      assistedYaw = Float.NaN;
+    }
+
     if (drafting && !wasDrafting && cfg.soundsEnabled) {
       level.playLocalSound(
           local.getX(),
@@ -183,6 +194,51 @@ public final class ClientFeelHandler {
         level.addParticle(vortex, s.position().x, s.position().y, s.position().z, 0, 0, 0);
       }
     }
+  }
+
+  /**
+   * Eases the player's view toward the wake ahead of them while drafting.
+   *
+   * <p>This exists because the pull moves your position but not your aim, and elytra flight is
+   * steered by where you look. Without it, following a leader through a turn means the wake
+   * direction changes while your view lags behind, the look divergence grows, and the pull
+   * releases even though you never meant to leave. Assisting the view keeps that release honest
+   * and makes the slipstream carry you rather than merely shove you sideways.
+   *
+   * <p>It aims at a point further along the wake rather than at the wake's heading, so climbs and
+   * dives are followed as well as turns. It yields completely the moment the player turns their
+   * own view, so it can never take the controls away.
+   */
+  private static void assistCamera(LocalPlayer local, DraftQuery query, SlipstreamConfig cfg) {
+    if (!cfg.draftCameraAssist || cfg.draftCameraAssistStrength <= 0.0) {
+      assistedYaw = Float.NaN;
+      return;
+    }
+    // If the view moved by more than our own last nudge, the player is steering. Stand down for
+    // this tick and resync, so the assist never wrestles the mouse.
+    if (!Float.isNaN(assistedYaw)
+        && Math.abs(Mth.wrapDegrees(local.getYRot() - assistedYaw)) > PLAYER_STEER_DEGREES) {
+      assistedYaw = Float.NaN;
+      return;
+    }
+
+    Vec3 target = query.point().add(query.wakeHeading().scale(AIM_LOOKAHEAD_BLOCKS));
+    Vec3 toTarget = target.subtract(local.getEyePosition());
+    double horizontal = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
+    if (horizontal < 1.0e-4) {
+      assistedYaw = Float.NaN;
+      return;
+    }
+
+    float targetYaw = (float) Math.toDegrees(Math.atan2(-toTarget.x, toTarget.z));
+    float targetPitch = (float) Math.toDegrees(-Math.atan2(toTarget.y, horizontal));
+    float rate = (float) (cfg.draftCameraAssistStrength * query.strength());
+
+    float yaw = local.getYRot() + Mth.wrapDegrees(targetYaw - local.getYRot()) * rate;
+    float pitch = local.getXRot() + (targetPitch - local.getXRot()) * rate;
+    local.setYRot(yaw);
+    local.setXRot(Mth.clamp(pitch, -90.0f, 90.0f));
+    assistedYaw = yaw;
   }
 
   /**
