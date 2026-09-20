@@ -36,7 +36,7 @@ class ServerConfigOverrideTest {
     local.particlesEnabled = false;
     ServerConfigOverride.setLocalConfigForTests(local);
 
-    ServerConfigOverride.apply(40.0, 0.01, 2.0, 8.0, 0.9, 0.5);
+    ServerConfigOverride.apply(40.0, 0.01, 2.0, 8.0, 0.9, 0.5, null);
     SlipstreamConfig merged = ServerConfigOverride.get();
 
     assertEquals(40.0, merged.effectHeightBlocks, 1e-9);
@@ -59,7 +59,7 @@ class ServerConfigOverrideTest {
   void get_withOverride_reflectsLaterLocalEdits() {
     SlipstreamConfig local = new SlipstreamConfig();
     ServerConfigOverride.setLocalConfigForTests(local);
-    ServerConfigOverride.apply(40.0, 0.01, 2.0, 8.0, 0.9, 0.5);
+    ServerConfigOverride.apply(40.0, 0.01, 2.0, 8.0, 0.9, 0.5, null);
     assertTrue(ServerConfigOverride.get().soundsEnabled);
     local.soundsEnabled = false;
     assertFalse(ServerConfigOverride.get().soundsEnabled, "screen edits must apply live");
@@ -78,13 +78,13 @@ class ServerConfigOverrideTest {
 
   @Test
   void isBoostAllowed_afterServerOverride_isTrue() {
-    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3);
+    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3, null);
     assertTrue(ServerConfigOverride.isBoostAllowed());
   }
 
   @Test
   void isBoostAllowed_afterDisconnect_isFalseAgain() {
-    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3);
+    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3, null);
     ServerConfigOverride.clear();
     assertFalse(ServerConfigOverride.isBoostAllowed());
   }

@@ -22,7 +22,8 @@ public final class ServerConfigOverride {
       double maxSpeed,
       double waterSprayHeight,
       double liftStrength,
-      double effectSpeedThreshold) {
+      double effectSpeedThreshold,
+      ServerConfigPayload.DraftSettings draft) {
     SlipstreamConfig cfg = new SlipstreamConfig();
     cfg.effectHeightBlocks = effectHeight;
     cfg.accelerationPerTick = acceleration;
@@ -30,6 +31,19 @@ public final class ServerConfigOverride {
     cfg.waterSprayHeightBlocks = waterSprayHeight;
     cfg.liftStrength = liftStrength;
     cfg.effectSpeedThreshold = effectSpeedThreshold;
+    if (draft != null) {
+      cfg.draftingEnabled = draft.enabled();
+      cfg.draftAccelerationPerTick = draft.acceleration();
+      cfg.draftSpeedMultiplier = draft.speedMultiplier();
+      cfg.draftPullStrength = draft.pullStrength();
+      cfg.draftReleaseAngleDeg = draft.releaseAngleDeg();
+      cfg.wakeBaseRadius = draft.wakeBaseRadius();
+      cfg.wakeSpreadRate = draft.wakeSpreadRate();
+      cfg.wakeLifetimeTicks = draft.wakeLifetimeTicks();
+      cfg.wakeSampleIntervalTicks = draft.wakeSampleIntervalTicks();
+      cfg.draftLeaderBonusPerDrafter = draft.leaderBonusPerDrafter();
+      cfg.draftLeaderBonusMaxDrafters = draft.leaderBonusMaxDrafters();
+    }
     cfg.validatePostLoad();
     active = cfg;
     Slipstream.LOGGER.info(
@@ -68,7 +82,8 @@ public final class ServerConfigOverride {
 
   /**
    * Returns the effective config. Without a server override this is the local config itself.
-   * With one, the six physics fields come from the server and every other field is copied
+   * With one, the physics fields (including the drafting physics fields) come from the server
+   * and every other field, including the client-only {@code draftParticlesEnabled}, is copied
    * fresh from the local config, so a server can never change client-only preferences and
    * config screen edits take effect immediately.
    */
@@ -83,6 +98,18 @@ public final class ServerConfigOverride {
     merged.waterSprayHeightBlocks = override.waterSprayHeightBlocks;
     merged.liftStrength = override.liftStrength;
     merged.effectSpeedThreshold = override.effectSpeedThreshold;
+    merged.draftingEnabled = override.draftingEnabled;
+    merged.draftAccelerationPerTick = override.draftAccelerationPerTick;
+    merged.draftSpeedMultiplier = override.draftSpeedMultiplier;
+    merged.draftPullStrength = override.draftPullStrength;
+    merged.draftReleaseAngleDeg = override.draftReleaseAngleDeg;
+    merged.wakeBaseRadius = override.wakeBaseRadius;
+    merged.wakeSpreadRate = override.wakeSpreadRate;
+    merged.wakeLifetimeTicks = override.wakeLifetimeTicks;
+    merged.wakeSampleIntervalTicks = override.wakeSampleIntervalTicks;
+    merged.draftLeaderBonusPerDrafter = override.draftLeaderBonusPerDrafter;
+    merged.draftLeaderBonusMaxDrafters = override.draftLeaderBonusMaxDrafters;
+    merged.draftParticlesEnabled = local.draftParticlesEnabled;
     merged.particlesEnabled = local.particlesEnabled;
     merged.soundsEnabled = local.soundsEnabled;
     merged.soundVolume = local.soundVolume;

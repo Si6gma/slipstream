@@ -29,7 +29,8 @@ public class SlipstreamClient implements ClientModInitializer {
                 payload.maxSpeed(),
                 payload.waterSprayHeight(),
                 payload.liftStrength(),
-                payload.effectSpeedThreshold()));
+                payload.effectSpeedThreshold(),
+                payload.draft()));
 
     // Track singleplayer state so the mixin knows whether local boost is allowed
     ClientPlayConnectionEvents.JOIN.register(

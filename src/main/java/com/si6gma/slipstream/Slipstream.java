@@ -47,7 +47,8 @@ public class Slipstream implements ModInitializer {
                   cfg.maxSpeedBlocksPerTick,
                   cfg.waterSprayHeightBlocks,
                   cfg.liftStrength,
-                  cfg.effectSpeedThreshold));
+                  cfg.effectSpeedThreshold,
+                  ServerConfigPayload.DraftSettings.from(cfg)));
         });
 
     LOGGER.info("Slipstream loaded.");
