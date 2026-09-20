@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Wind rush sound layer that scales with ground effect proximity and speed and
+  pitches up toward max speed
+- Positional water wake and block step skim sounds, for yourself and other
+  gliders in range
+- FOV kick that widens the view as ground effect speed builds; honours the
+  vanilla FOV Effects slider
+- Particles now render locally on servers without the mod or plugin, for every
+  gliding player in range
+- In game config screen via Mod Menu and Cloth Config (both optional)
+- Client only config: `soundsEnabled`, `soundVolume`, `fovKickEnabled`,
+  `fovKickStrength`, `clientParticlesOnVanillaServers`,
+  `remotePlayerParticles`
+
+### Fixed
+
+- LAN guests now receive the server config, so they get the boost and do not
+  see doubled particles
+
+### Changed
+
+- Particle geometry moved out of the mixin into `GroundEffectParticles` behind
+  a `ParticleSink`, with unit tests
+
 ## [1.0.3] - 2026-09-19
 
 ### Changed

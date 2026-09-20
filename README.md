@@ -21,6 +21,12 @@ should: building speed, holding altitude, and kicking up whatever's below you.
   behind, fine mist ahead. Scales with speed and proximity.
 - **Wingtip vortices** custom semitransparent particles that spin and fade over
   ~a second. Purely visual but they feel right.
+- **Sound** a wind layer that swells and rises in pitch as you skim, a wet wake
+  over water, and the actual step sound of whatever block you're skimming.
+  All vanilla sound events, so resource packs remap them for free.
+- **FOV kick** a subtle widening as ground effect speed builds. Respects the
+  vanilla FOV Effects accessibility slider.
+- **Config screen** via Mod Menu and Cloth Config (both optional).
 
 ---
 
@@ -35,10 +41,12 @@ check the boost would look identical to a speed hack to any anticheat.
 | Singleplayer                    | ✓     | ✓         |
 | Fabric server (mod installed)   | ✓     | ✓         |
 | Paper server (plugin installed) | ✓     | ✓         |
-| Server without either           |       |           |
+| Server without either           |       | ✓ (local) |
 
-If you join a server that doesn't have the mod or plugin, nothing happens. No
-particles, no boost, no flags.
+If you join a server that doesn't have the mod or plugin, you still get the
+particles and sounds (rendered locally, for you and any other gliders you can
+see), but no boost, no lift, and no FOV kick. Nothing that could look like a
+speed hack ever runs without the server's say so.
 
 ---
 
@@ -71,10 +79,21 @@ to all online players live.
 | Water spray height | `5.0`   | How close to water before spray kicks in                  |
 | Lift strength      | `0.6`   | Upward force when skimming level                          |
 | Particles enabled  | `true`  | Set to `false` to disable all ground effect particles     |
+| Sounds enabled     | `true`  | Wind, wake, and skim sounds (client only)                 |
+| Sound volume       | `1.0`   | 0 to 2, multiplies all Slipstream sounds (client only)   |
+| FOV kick enabled   | `true`  | Widen FOV with ground effect speed (client only)          |
+| FOV kick strength  | `0.1`   | 0 to 0.5, fraction of FOV added at max effect (client)    |
+| Particles on vanilla servers | `true` | Render particles locally when the server lacks the mod |
+| Remote player particles | `true` | Particles and sounds for other gliders you can see  |
 
 The Paper plugin also has `override-clients` (default `true`) to push server
 values to connecting clients, and `disabled-worlds` to opt specific worlds out
 entirely.
+
+Client only options are never overridden by a server. With
+[Mod Menu](https://modrinth.com/mod/modmenu) and
+[Cloth Config](https://modrinth.com/mod/cloth-config) installed, every option
+is editable in game under Mods > Slipstream.
 
 ---
 
