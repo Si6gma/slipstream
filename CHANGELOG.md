@@ -20,6 +20,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Client only config: `soundsEnabled`, `soundVolume`, `fovKickEnabled`,
   `fovKickStrength`, `clientParticlesOnVanillaServers`,
   `remotePlayerParticles`
+- Drafting: flying in another glider's wake gives a forward boost and a gentle
+  pull toward their line, released by looking away from the wake
+- Wakes are a fading trail of the leader's actual path, so they curve through
+  turns and stay draftable for a few seconds after they pass
+- Drafting can exceed the normal speed cap by a configurable margin so
+  overtaking is possible
+- Drafting chains, and a leader gains a small bonus for flyers in their wake
+- Wake particles and a cue when you enter a slipstream
+- Drafting settings in the config screen, and server pushed drafting physics
 
 ### Fixed
 
@@ -37,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Particle geometry moved out of the mixin into `GroundEffectParticles` behind
   a `ParticleSink`, with unit tests
+- `ServerConfigPayload` carries drafting settings. The client accepts a payload
+  that ends after the original six values, so older Paper plugins keep working
 
 ## [1.0.3] - 2026-09-19
 

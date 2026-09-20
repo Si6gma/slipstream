@@ -78,6 +78,52 @@ public final class SlipstreamConfigScreen {
             .setSaveConsumer(v -> cfg.waterSprayHeightBlocks = v)
             .build());
 
+    ConfigCategory drafting =
+        builder.getOrCreateCategory(Component.translatable("category.slipstream.drafting"));
+    drafting.addEntry(
+        e.startBooleanToggle(label("draftingEnabled"), cfg.draftingEnabled)
+            .setDefaultValue(defaults.draftingEnabled)
+            .setTooltip(serverNote)
+            .setSaveConsumer(v -> cfg.draftingEnabled = v)
+            .build());
+    drafting.addEntry(
+        e.startDoubleField(label("draftAccelerationPerTick"), cfg.draftAccelerationPerTick)
+            .setDefaultValue(defaults.draftAccelerationPerTick)
+            .setMin(0.0)
+            .setMax(1.0)
+            .setTooltip(serverNote)
+            .setSaveConsumer(v -> cfg.draftAccelerationPerTick = v)
+            .build());
+    drafting.addEntry(
+        e.startDoubleField(label("draftSpeedMultiplier"), cfg.draftSpeedMultiplier)
+            .setDefaultValue(defaults.draftSpeedMultiplier)
+            .setMin(1.0)
+            .setMax(3.0)
+            .setTooltip(serverNote)
+            .setSaveConsumer(v -> cfg.draftSpeedMultiplier = v)
+            .build());
+    drafting.addEntry(
+        e.startDoubleField(label("draftPullStrength"), cfg.draftPullStrength)
+            .setDefaultValue(defaults.draftPullStrength)
+            .setMin(0.0)
+            .setMax(1.0)
+            .setTooltip(serverNote)
+            .setSaveConsumer(v -> cfg.draftPullStrength = v)
+            .build());
+    drafting.addEntry(
+        e.startDoubleField(label("draftReleaseAngleDeg"), cfg.draftReleaseAngleDeg)
+            .setDefaultValue(defaults.draftReleaseAngleDeg)
+            .setMin(0.0)
+            .setMax(90.0)
+            .setTooltip(serverNote)
+            .setSaveConsumer(v -> cfg.draftReleaseAngleDeg = v)
+            .build());
+    drafting.addEntry(
+        e.startBooleanToggle(label("draftParticlesEnabled"), cfg.draftParticlesEnabled)
+            .setDefaultValue(defaults.draftParticlesEnabled)
+            .setSaveConsumer(v -> cfg.draftParticlesEnabled = v)
+            .build());
+
     ConfigCategory visuals =
         builder.getOrCreateCategory(Component.translatable("category.slipstream.visuals"));
     visuals.addEntry(

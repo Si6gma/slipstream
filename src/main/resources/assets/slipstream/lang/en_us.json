@@ -3,6 +3,7 @@
   "category.slipstream.physics": "Physics",
   "category.slipstream.visuals": "Visuals",
   "category.slipstream.audio": "Audio",
+  "category.slipstream.drafting": "Drafting",
   "tooltip.slipstream.serverOverride": "When connected to a server running Slipstream, the server's value is used instead.",
   "tooltip.slipstream.sprayCappedByEffectHeight": "Capped at the effect height when saved.",
   "option.slipstream.effectHeightBlocks": "Effect height (blocks)",
@@ -17,5 +18,11 @@
   "option.slipstream.fovKickEnabled": "FOV kick",
   "option.slipstream.fovKickStrength": "FOV kick strength",
   "option.slipstream.soundsEnabled": "Sounds",
-  "option.slipstream.soundVolume": "Sound volume"
+  "option.slipstream.soundVolume": "Sound volume",
+  "option.slipstream.draftingEnabled": "Drafting",
+  "option.slipstream.draftAccelerationPerTick": "Draft acceleration per tick",
+  "option.slipstream.draftSpeedMultiplier": "Draft speed multiplier",
+  "option.slipstream.draftPullStrength": "Slipstream pull strength",
+  "option.slipstream.draftReleaseAngleDeg": "Pull release angle (degrees)",
+  "option.slipstream.draftParticlesEnabled": "Wake particles"
 }

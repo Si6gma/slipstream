@@ -27,6 +27,10 @@ should: building speed, holding altitude, and kicking up whatever's below you.
 - **FOV kick** a subtle widening as ground effect speed builds. Respects the
   vanilla FOV Effects accessibility slider.
 - **Config screen** via Mod Menu and Cloth Config (both optional).
+- **Drafting** fly into another glider's wake and you gain speed and get drawn
+  gently onto their line, enough to hold formation without ever losing your own
+  steering. Look away and the pull releases instantly. Wakes fade over a few
+  seconds, so you can still catch a line someone flew a moment ago.
 
 ---
 
@@ -85,6 +89,12 @@ to all online players live.
 | FOV kick strength  | `0.1`   | 0 to 0.5, fraction of FOV added at max effect (client)    |
 | Particles on vanilla servers | `true` | Render particles locally when the server lacks the mod |
 | Remote player particles | `true` | Particles and sounds for other gliders you can see  |
+| Drafting           | `true`  | Ride other players' wakes (server pushed)                 |
+| Draft acceleration | `0.008` | Speed gained per tick at the centre of a fresh wake        |
+| Draft speed mult.  | `1.15`  | Ceiling while drafting, as a multiple of max speed         |
+| Pull strength      | `0.25`  | Fraction of your offset from the wake corrected per tick   |
+| Pull release angle | `35.0`  | Look this far from the wake and the pull lets go           |
+| Wake particles     | `true`  | Draw other players' wakes (client only)                    |
 
 The Paper plugin also has `override-clients` (default `true`) to push server
 values to connecting clients, and `disabled-worlds` to opt specific worlds out
