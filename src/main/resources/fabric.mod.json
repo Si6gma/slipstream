@@ -15,7 +15,8 @@
   "environment": "*",
   "entrypoints": {
     "main": ["com.si6gma.slipstream.Slipstream"],
-    "client": ["com.si6gma.slipstream.client.SlipstreamClient"]
+    "client": ["com.si6gma.slipstream.client.SlipstreamClient"],
+    "modmenu": ["com.si6gma.slipstream.client.SlipstreamModMenu"]
   },
   "mixins": ["slipstream.mixins.json"],
   "updateJsonUrl": "https://raw.githubusercontent.com/Si6gma/slipstream/main/update.json",
@@ -27,5 +28,9 @@
     "minecraft": ">=26.1",
     "java": ">=25",
     "fabric-api": ">=0.145.4"
+  },
+  "suggests": {
+    "modmenu": "*",
+    "cloth-config": "*"
   }
 }
