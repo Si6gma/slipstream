@@ -69,6 +69,8 @@ public final class ClientFeelHandler {
             && !ServerConfigOverride.isActive()
             && !client.hasSingleplayerServer();
     LocalParticleSink sink = localParticles ? new LocalParticleSink(level, RANDOM) : null;
+    // Nothing below consumes the sample when sounds are off and local particles are inactive.
+    if (!cfg.soundsEnabled && sink == null) return;
     Vec3 eye = local.position();
 
     for (Player p : level.players()) {

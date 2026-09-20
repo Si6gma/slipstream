@@ -115,6 +115,18 @@ class GroundEffectParticlesTest {
   }
 
   @Test
+  void water_emitsMistOverTime() {
+    RecordingSink sink = new RecordingSink();
+    RandomSource random = RandomSource.create(7L);
+    GroundEffectSample s = water(1.0, 1.5);
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    for (int tick = 0; tick < 30; tick++) {
+      GroundEffectParticles.emit(s, cfg, tick, random, POS, sink);
+    }
+    assertTrue(sink.count(ParticleTypes.FALLING_WATER) > 0, "mist emits over extended time");
+  }
+
+  @Test
   void ground_emitsDustAndPuffsButNoWater() {
     RecordingSink sink = run(ground(1.0, 1.5), new SlipstreamConfig());
     assertTrue(sink.countType(ParticleTypes.BLOCK) > 0, "dust uses BLOCK");

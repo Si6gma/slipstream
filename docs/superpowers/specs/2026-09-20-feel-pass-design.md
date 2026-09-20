@@ -206,8 +206,9 @@ pitch  = 0.8 + random * 0.2
 
 ## FOV kick
 
-A MixinExtras `@ModifyReturnValue` on
-`AbstractClientPlayer.getFieldOfViewModifier(boolean, float)`. Applies only
+A plain Sponge Mixin `@Inject` at `RETURN` (cancellable) on
+`AbstractClientPlayer.getFieldOfViewModifier(boolean, float)`, avoiding a
+MixinExtras dependency. Applies only
 when the instance is `Minecraft.getInstance().player`,
 `cfg.fovKickEnabled` is true, and `ServerConfigOverride.isBoostAllowed()` is
 true. On servers without the mod there is no extra speed, so there is no kick.

@@ -25,6 +25,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - LAN guests now receive the server config, so they get the boost and do not
   see doubled particles
+- Client only sound, FOV kick, and particle settings no longer reset to
+  defaults while connected to a server or LAN host that pushes a config
+  override
+- Fixed a client launch crash caused by duplicate server_config payload
+  registration
+- Wind rush sound no longer keeps looping from a stale position after a
+  portal or death respawn changes dimension
 
 ### Changed
 
