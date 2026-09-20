@@ -69,4 +69,43 @@ public final class GroundEffectMath {
     if (hSpeed >= maxSpeed || ySpeed > 0.05) return 0.0;
     return proximity * acceleration;
   }
+
+  /** hSpeed / maxSpeed clamped to [0, 1]. Returns 0 for a non positive maxSpeed. */
+  public static double speedRatio(double hSpeed, double maxSpeed) {
+    if (maxSpeed <= 0.0) return 0.0;
+    return Math.max(0.0, Math.min(hSpeed / maxSpeed, 1.0));
+  }
+
+  /**
+   * Wind rush loop volume. Capped at 0.6 so it sits under the vanilla elytra loop, which already
+   * runs at up to full volume, and the combined sound reads as a rising whistle.
+   */
+  public static double windVolume(double proximity, double speedRatio, double volumeScale) {
+    return 0.6 * proximity * speedRatio * volumeScale;
+  }
+
+  /** Wind rush pitch: 1.0 at rest, 1.4 at max speed. */
+  public static double windPitch(double speedRatio) {
+    return 1.0 + 0.4 * speedRatio;
+  }
+
+  /** Positional water wake volume. */
+  public static double wakeVolume(double waterProximity, double speedRatio, double volumeScale) {
+    return 0.5 * waterProximity * speedRatio * volumeScale;
+  }
+
+  /** Positional ground skim (block step sound) volume. */
+  public static double skimVolume(double proximity, double volumeScale) {
+    return 0.15 * proximity * volumeScale;
+  }
+
+  /** FOV widening target as a fraction of the vanilla FOV modifier. */
+  public static double fovKickTarget(double strength, double proximity, double speedRatio) {
+    return strength * proximity * speedRatio;
+  }
+
+  /** One step of exponential smoothing toward target. */
+  public static double smooth(double current, double target, double rate) {
+    return current + (target - current) * rate;
+  }
 }
