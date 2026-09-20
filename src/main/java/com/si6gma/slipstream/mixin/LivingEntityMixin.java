@@ -7,6 +7,11 @@ import com.si6gma.slipstream.GroundEffectSampler;
 import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.ServerParticleSink;
 import com.si6gma.slipstream.SlipstreamConfig;
+import com.si6gma.slipstream.draft.DraftQuery;
+import com.si6gma.slipstream.draft.DraftingMath;
+import com.si6gma.slipstream.draft.WakeTracker;
+import com.si6gma.slipstream.draft.WakeTrackers;
+import com.si6gma.slipstream.draft.WakeTrail;
 import com.si6gma.slipstream.network.ServerConfigOverride;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
@@ -38,6 +43,9 @@ public class LivingEntityMixin implements GroundEffectSampler {
   // same tick; without this the shared raycast cache would age twice per tick and refresh early.
   @Unique private GroundEffectSample ege$sample;
   @Unique private int ege$sampleTick = -1;
+
+  /** Only leaders within this many blocks are considered, squared for a cheap comparison. */
+  @Unique private static final double EGE$DRAFT_RANGE_SQ = 64.0 * 64.0;
 
   @Override
   public GroundEffectSample slipstream$sample(SlipstreamConfig cfg) {
@@ -107,6 +115,75 @@ public class LivingEntityMixin implements GroundEffectSampler {
         hSpeed,
         travelDir,
         right);
+  }
+
+  /**
+   * Applies the strongest available draft to the local player: a forward boost along their own
+   * heading, a pull toward the wake centreline, and a small bonus for leading others.
+   */
+  @Unique
+  private Vec3 ege$applyDrafting(
+      Player player, Vec3 velocity, SlipstreamConfig cfg, double groundProximity) {
+    WakeTracker tracker = WakeTrackers.forLevel(player.level());
+    Vec3 pos = player.position();
+    int now = player.tickCount;
+
+    double hSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+    if (hSpeed < 1.0e-4) return velocity;
+    Vec3 heading = new Vec3(velocity.x / hSpeed, 0, velocity.z / hSpeed);
+
+    DraftQuery best = null;
+    int drafterCount = 0;
+    WakeTrail myTrail = tracker.trailFor(player.getUUID());
+
+    for (Player other : player.level().players()) {
+      if (other == player) continue;
+      if (other.position().distanceToSqr(pos) > EGE$DRAFT_RANGE_SQ) continue;
+
+      DraftQuery q = DraftingMath.nearest(tracker.trailFor(other.getUUID()), pos, now, cfg);
+      if (q != null && (best == null || q.strength() > best.strength())) best = q;
+
+      // Anyone sitting in my own wake earns me the leader bonus.
+      if (other.isFallFlying()
+          && DraftingMath.nearest(myTrail, other.position(), now, cfg) != null) {
+        drafterCount++;
+      }
+    }
+
+    Vec3 result = velocity;
+
+    if (best != null) {
+      double boost = DraftingMath.boostDelta(hSpeed, best.strength(), cfg);
+      if (boost > 0.0) result = result.add(heading.scale(boost));
+
+      double divergence = ege$lookDivergenceDeg(player, best.wakeHeading());
+      double pull = DraftingMath.pullForce(best.lateralOffset(), divergence, best.strength(), cfg);
+      if (pull > 0.0 && best.toCentre().lengthSqr() > 0.0) {
+        Vec3 step = best.toCentre().scale(pull);
+        // Near a surface the ground effect owns the vertical axis, so the two never fight for it.
+        double verticalShare = 1.0 - Math.max(0.0, Math.min(1.0, groundProximity));
+        result = result.add(step.x, step.y * verticalShare, step.z);
+      }
+    }
+
+    double bonus = DraftingMath.leaderBonus(drafterCount, cfg);
+    if (bonus > 0.0 && hSpeed < cfg.maxSpeedBlocksPerTick) {
+      // A leader keeps the normal ceiling; only an actual drafter gets the raised one.
+      double room = cfg.maxSpeedBlocksPerTick - hSpeed;
+      result = result.add(heading.scale(Math.min(bonus, room)));
+    }
+
+    return result;
+  }
+
+  /** Absolute angle in degrees between the player's horizontal look and the wake heading. */
+  @Unique
+  private double ege$lookDivergenceDeg(Player player, Vec3 wakeHeading) {
+    Vec3 look = player.getLookAngle();
+    double lookLen = Math.sqrt(look.x * look.x + look.z * look.z);
+    if (lookLen < 1.0e-4) return 180.0;
+    double dot = (look.x * wakeHeading.x + look.z * wakeHeading.z) / lookLen;
+    return Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, dot))));
   }
 
   @Inject(method = "travel", at = @At("TAIL"))
@@ -180,6 +257,9 @@ public class LivingEntityMixin implements GroundEffectSampler {
                   resultHSpeed,
                   cfg.maxSpeedBlocksPerTick);
           if (lift != 0.0) result = result.add(0, lift, 0);
+        }
+        if (cfg.draftingEnabled) {
+          result = ege$applyDrafting(player, result, cfg, proximity);
         }
         if (result != velocity) player.setDeltaMovement(result);
       }
