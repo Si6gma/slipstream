@@ -32,7 +32,12 @@ public class Slipstream implements ModInitializer {
 
     ServerPlayConnectionEvents.JOIN.register(
         (handler, sender, server) -> {
-          if (!server.isDedicatedServer()) return;
+          // Skip only the singleplayer owner. LAN guests need the payload so they get the
+          // boost and know not to render their own particles.
+          if (!server.isDedicatedServer()
+              && server.isSingleplayerOwner(handler.getPlayer().nameAndId())) {
+            return;
+          }
           SlipstreamConfig cfg = getConfig();
           ServerPlayNetworking.send(
               handler.getPlayer(),
