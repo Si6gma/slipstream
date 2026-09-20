@@ -36,7 +36,6 @@ A record in `com.si6gma.slipstream`:
 distToSurface   double
 proximity       double   GroundEffectMath.proximity(...)
 surfaceBlock    BlockState
-surfacePos      BlockPos
 surfaceY        double
 isWater         boolean
 hSpeed          double
@@ -79,13 +78,16 @@ static void emit(GroundEffectSample s, SlipstreamConfig cfg, int tick,
 
 ```
 void single(ParticleOptions type, double x, double y, double z,
-            double vx, double vy, double vz);
+            double vx, double vy, double vz, double speed);
 void burst(ParticleOptions type, double x, double y, double z, int count,
            double spreadX, double spreadY, double spreadZ, double speed);
 ```
 
-`single` maps to the current `sendParticles(type, x, y, z, 0, vx, vy, vz, 0 or 1)`
-calls. `burst` maps to the current `sendParticles(type, x, y, z, count, dx, dy,
+`single` maps to the current `sendParticles(type, x, y, z, 0, vx, vy, vz, speed)`
+calls, carrying the old trailing speed through unchanged. Vanilla clients
+multiply a count 0 velocity by that speed, and the old code passes 0 for the
+wing vortex and ground dust, so those currently arrive with zero velocity. That
+quirk is preserved here and flagged as a separate follow-up. `burst` maps to the current `sendParticles(type, x, y, z, count, dx, dy,
 dz, speed)` calls used for the water contact burst. There are exactly two burst
 call sites today, so the mapping is mechanical.
 
@@ -94,7 +96,9 @@ Two implementations:
 - `ServerParticleSink(ServerLevel)`: wraps `level.sendParticles`. The `single`
   case passes count 0 and the same trailing speed argument the current code
   passes, so wire behaviour is byte for byte identical.
-- `ClientParticleSink(ClientLevel)`: `single` calls `level.addParticle`.
+- `LocalParticleSink(Level)`: lives in the main source set (`Level.addParticle`
+  exists on the common class and is a no op on the server) so the mixin free
+  spread logic can be unit tested. `single` calls `level.addParticle`.
   `burst` loops `count` times and adds a particle at position plus
   `random.nextGaussian() * spread` on each axis with velocity
   `random.nextGaussian() * speed` on each axis. This mirrors how the vanilla
@@ -120,7 +124,7 @@ only when all of the following hold:
 
 For each `Player` in `level.players()` that is fall flying and within 64 blocks
 of the camera, it calls `slipstream$sample(cfg)` and, on a non null result,
-`GroundEffectParticles.emit(...)` with the `ClientParticleSink`. Remote players
+`GroundEffectParticles.emit(...)` with the `LocalParticleSink`. Remote players
 are skipped when `cfg.remotePlayerParticles` is false. The tick counter passed
 to `emit` is the player's `tickCount`, same as the server path.
 
@@ -135,7 +139,8 @@ the owner keeps singleplayer logs and behaviour unchanged.
 
 ### LocalGroundEffectState
 
-A client only holder in `com.si6gma.slipstream.client`:
+A static holder in `com.si6gma.slipstream` (main source set, because the mixin
+that writes it lives there; it is inert on a dedicated server):
 
 ```
 static volatile double proximity;    0 when not in ground effect
@@ -237,7 +242,7 @@ them.
 | `clientParticlesOnVanillaServers`| `true`  |            |
 | `remotePlayerParticles`          | `true`  |            |
 
-`Slipstream` gains `saveConfig()` and `reloadConfig()` so the screen can
+`Slipstream` gains `saveConfig()` so the screen can
 persist edits and apply them live. Existing fields, file location, and the
 Paper `config.yml` are untouched.
 
@@ -263,8 +268,8 @@ Categories:
   particles, FOV kick enabled, FOV kick strength.
 - Audio: sounds enabled, sound volume.
 
-Saving writes `slipstream.json` through `saveConfig()` and calls
-`reloadConfig()`.
+Saving mutates the live config instance and writes `slipstream.json` through
+`saveConfig()`, so no reload step is needed.
 
 `assets/slipstream/lang/en_us.json` supplies every title, entry label, and
 tooltip.
@@ -284,7 +289,7 @@ client END_CLIENT_TICK
   for each gliding player in 64 blocks:
     sample
     wake / skim sounds             always
-    GroundEffectParticles.emit(ClientParticleSink)   only when server lacks mod
+    GroundEffectParticles.emit(LocalParticleSink)    only when server lacks mod
 ```
 
 ## Error handling
@@ -311,7 +316,7 @@ Unit tests, `src/test`:
   clamps, wind volume and pitch at the corners, FOV target at zero proximity is
   zero, smoothing converges.
 - `SlipstreamConfigTest` extended for the six new fields' defaults and clamps.
-- `ClientParticleSink` burst expansion is tested against a seeded
+- `LocalParticleSink` burst expansion is tested against a seeded
   `RandomSource` for count and bounded spread.
 
 Manual checklist before release:
