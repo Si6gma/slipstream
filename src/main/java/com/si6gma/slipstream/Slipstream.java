@@ -3,15 +3,21 @@ package com.si6gma.slipstream;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import com.si6gma.slipstream.draft.WakeTrackers;
 import com.si6gma.slipstream.network.ServerConfigPayload;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +56,33 @@ public class Slipstream implements ModInitializer {
                   cfg.effectSpeedThreshold,
                   ServerConfigPayload.DraftSettings.from(cfg)));
         });
+
+    ServerTickEvents.END_SERVER_TICK.register(
+        server -> {
+          SlipstreamConfig cfg = getConfig();
+          if (!cfg.draftingEnabled) return;
+          int now = server.getTickCount();
+          double gate = cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick;
+          for (ServerLevel level : server.getAllLevels()) {
+            for (ServerPlayer player : level.players()) {
+              if (!player.isFallFlying()) continue;
+              Vec3 v = player.getDeltaMovement();
+              double hSpeed = Math.sqrt(v.x * v.x + v.z * v.z);
+              if (hSpeed < gate) continue;
+              WakeTrackers.server()
+                  .record(
+                      player.getUUID(),
+                      player.position(),
+                      new Vec3(v.x / hSpeed, 0, v.z / hSpeed),
+                      hSpeed,
+                      now,
+                      cfg);
+            }
+          }
+          WakeTrackers.server().prune(now, cfg);
+        });
+
+    ServerLifecycleEvents.SERVER_STOPPED.register(server -> WakeTrackers.server().clear());
 
     LOGGER.info("Slipstream loaded.");
   }
