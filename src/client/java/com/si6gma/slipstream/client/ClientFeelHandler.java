@@ -173,8 +173,9 @@ public final class ClientFeelHandler {
    */
   private static void drawWakes(
       ClientLevel level, SlipstreamConfig cfg, int now, UUID draftedLeader) {
-    var vortex = ModParticles.wingVortex();
-    if (vortex == null) return;
+    var idleLook = ModParticles.wakeTrail();
+    var riddenLook = ModParticles.draftActive();
+    if (idleLook == null || riddenLook == null) return;
     double lifetimeSeconds = cfg.wakeLifetimeTicks / 20.0;
     if (lifetimeSeconds <= 0.0) return;
     for (UUID id : WakeTrackers.client().ids()) {
@@ -191,7 +192,14 @@ public final class ClientFeelHandler {
         // Drawing sparsely rather than faintly: an old wake thins instead of dimming. The ridden
         // wake skips that thinning entirely so it reads as solid for as long as it is usable.
         if (!riding && RANDOM.nextFloat() > fade) continue;
-        level.addParticle(vortex, s.position().x, s.position().y, s.position().z, 0, 0, 0);
+        level.addParticle(
+            riding ? riddenLook : idleLook,
+            s.position().x,
+            s.position().y,
+            s.position().z,
+            0,
+            0,
+            0);
       }
     }
   }
@@ -247,7 +255,7 @@ public final class ClientFeelHandler {
    * particles points at it, so the correction to make is obvious rather than guessed.
    */
   private static void drawDraftStrength(ClientLevel level, LocalPlayer local, DraftQuery query) {
-    var vortex = ModParticles.wingVortex();
+    var vortex = ModParticles.draftActive();
     if (vortex == null) return;
     double strength = query.strength();
     if (strength <= 0.0) return;

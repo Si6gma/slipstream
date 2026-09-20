@@ -19,6 +19,14 @@ public class SlipstreamClient implements ClientModInitializer {
   public void onInitializeClient() {
     ParticleProviderRegistry.getInstance()
         .register(ModParticles.wingVortex(), WingVortexParticle.Factory::new);
+    ParticleProviderRegistry.getInstance()
+        .register(
+            ModParticles.wakeTrail(),
+            sprites -> new WingVortexParticle.Factory(sprites, WingVortexParticle.WAKE));
+    ParticleProviderRegistry.getInstance()
+        .register(
+            ModParticles.draftActive(),
+            sprites -> new WingVortexParticle.Factory(sprites, WingVortexParticle.DRAFT));
 
     // Apply server config when received from either a Fabric server or the Paper
     // plugin.
