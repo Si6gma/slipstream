@@ -121,6 +121,7 @@ public final class SlipstreamConfigScreen {
     drafting.addEntry(
         e.startBooleanToggle(label("draftCameraAssist"), cfg.draftCameraAssist)
             .setDefaultValue(defaults.draftCameraAssist)
+            .setTooltip(serverNote)
             .setSaveConsumer(v -> cfg.draftCameraAssist = v)
             .build());
     drafting.addEntry(
@@ -128,6 +129,7 @@ public final class SlipstreamConfigScreen {
             .setDefaultValue(defaults.draftCameraAssistStrength)
             .setMin(0.0)
             .setMax(0.5)
+            .setTooltip(serverNote)
             .setSaveConsumer(v -> cfg.draftCameraAssistStrength = v)
             .build());
     drafting.addEntry(

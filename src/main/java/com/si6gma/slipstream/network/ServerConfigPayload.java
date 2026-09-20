@@ -39,7 +39,9 @@ public record ServerConfigPayload(
       int wakeLifetimeTicks,
       int wakeSampleIntervalTicks,
       double leaderBonusPerDrafter,
-      int leaderBonusMaxDrafters) {
+      int leaderBonusMaxDrafters,
+      boolean cameraAssist,
+      double cameraAssistStrength) {
 
     public static DraftSettings from(SlipstreamConfig cfg) {
       return new DraftSettings(
@@ -53,7 +55,9 @@ public record ServerConfigPayload(
           cfg.wakeLifetimeTicks,
           cfg.wakeSampleIntervalTicks,
           cfg.draftLeaderBonusPerDrafter,
-          cfg.draftLeaderBonusMaxDrafters);
+          cfg.draftLeaderBonusMaxDrafters,
+          cfg.draftCameraAssist,
+          cfg.draftCameraAssistStrength);
     }
   }
 
@@ -84,6 +88,8 @@ public record ServerConfigPayload(
     buf.writeInt(draft.wakeSampleIntervalTicks());
     buf.writeDouble(draft.leaderBonusPerDrafter());
     buf.writeInt(draft.leaderBonusMaxDrafters());
+    buf.writeBoolean(draft.cameraAssist());
+    buf.writeDouble(draft.cameraAssistStrength());
   }
 
   /** Package visible for the codec and for tests. */
@@ -109,7 +115,9 @@ public record ServerConfigPayload(
               buf.readInt(),
               buf.readInt(),
               buf.readDouble(),
-              buf.readInt());
+              buf.readInt(),
+              buf.readBoolean(),
+              buf.readDouble());
     }
     return new ServerConfigPayload(
         effectHeight,

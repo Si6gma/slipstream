@@ -115,3 +115,15 @@ draft-leader-bonus-per-drafter: 0.15
 # Most drafters that count toward the leader bonus, so a large group cannot
 # push whoever is in front absurdly fast.
 draft-leader-bonus-max-drafters: 3
+
+# While drafting, your view is eased toward the wake ahead of you. Without this,
+# following a leader through a turn fights you: the wake direction changes, your
+# aim lags behind, and the pull releases even though you never meant to leave.
+# The server decides this for everyone, since a player with a stronger assist
+# holds a wake line better than one without.
+draft-camera-assist: true
+
+# How hard the view is eased, from 0.0 to 0.5. Scales with draft strength, so a
+# weak draft barely nudges you. 0.0 disables the assist while leaving drafting
+# itself untouched. Values above about 0.3 start to feel like autopilot.
+draft-camera-assist-strength: 0.15

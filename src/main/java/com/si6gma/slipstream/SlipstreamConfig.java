@@ -31,7 +31,9 @@ public class SlipstreamConfig {
   public double draftLeaderBonusPerDrafter = 0.15;
   public int draftLeaderBonusMaxDrafters = 3;
   public boolean draftParticlesEnabled = true;
-  // Client only. Eases your view toward the wake so following a turning leader does not fight you.
+  // Server pushed. Eases your view toward the wake so following a turning leader does not fight
+  // you. Server governed rather than local because it steers you, so a stronger assist is a real
+  // advantage over a player without one.
   public boolean draftCameraAssist = true;
   public double draftCameraAssistStrength = 0.15;
 

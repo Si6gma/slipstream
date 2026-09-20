@@ -15,13 +15,13 @@ import org.junit.jupiter.api.Test;
 class PayloadFormatTest {
 
   private static final DraftValues DRAFT =
-      new DraftValues(true, 0.008, 1.15, 0.25, 35.0, 1.5, 1.2, 60, 2, 0.15, 3);
+      new DraftValues(true, 0.008, 1.15, 0.25, 35.0, 1.5, 1.2, 60, 2, 0.15, 3, true, 0.15);
 
   @Test
-  void payloadIsExactlyOneHundredSeventeenBytes() throws IOException {
+  void payloadIsExactlyOneHundredTwentySixBytes() throws IOException {
     byte[] out = PayloadCodec.serialize(20.0, 0.005, 1.5, 5.0, 0.6, 0.3, DRAFT);
-    // 6 leading doubles (48) + boolean (1) + 6 doubles (48) + 2 ints (8) + double (8) + int (4).
-    assertEquals(117, out.length);
+    // 48 leading + boolean 1 + 6 doubles 48 + 2 ints 8 + double 8 + int 4 + boolean 1 + double 8.
+    assertEquals(126, out.length);
   }
 
   @Test
@@ -47,6 +47,8 @@ class PayloadFormatTest {
     assertEquals(2, in.readInt());
     assertEquals(0.15, in.readDouble(), 1e-9);
     assertEquals(3, in.readInt());
+    assertEquals(true, in.readBoolean());
+    assertEquals(0.15, in.readDouble(), 1e-9);
 
     assertEquals(0, in.available(), "nothing may trail the last field");
   }

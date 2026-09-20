@@ -43,6 +43,11 @@ public final class ServerConfigOverride {
       cfg.wakeSampleIntervalTicks = draft.wakeSampleIntervalTicks();
       cfg.draftLeaderBonusPerDrafter = draft.leaderBonusPerDrafter();
       cfg.draftLeaderBonusMaxDrafters = draft.leaderBonusMaxDrafters();
+      cfg.draftCameraAssistStrength = draft.cameraAssistStrength();
+      // Enabling is server governed, but a player may always opt out: disabling only ever costs
+      // them the assist, so it cannot be used to gain an advantage, and forcing view movement on
+      // someone it makes ill is not worth the consistency.
+      cfg.draftCameraAssist = draft.cameraAssist() && local().draftCameraAssist;
     }
     cfg.validatePostLoad();
     active = cfg;

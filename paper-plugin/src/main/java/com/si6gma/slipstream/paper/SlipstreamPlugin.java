@@ -166,7 +166,9 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
         getConfig().getInt("wake-lifetime-ticks", 60),
         getConfig().getInt("wake-sample-interval-ticks", 2),
         getConfig().getDouble("draft-leader-bonus-per-drafter", 0.15),
-        getConfig().getInt("draft-leader-bonus-max-drafters", 3));
+        getConfig().getInt("draft-leader-bonus-max-drafters", 3),
+        getConfig().getBoolean("draft-camera-assist", true),
+        getConfig().getDouble("draft-camera-assist-strength", 0.15));
   }
 
 

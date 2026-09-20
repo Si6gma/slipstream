@@ -10,7 +10,7 @@ package com.si6gma.slipstream.network;
  */
 public final class SlipstreamProtocol {
 
-  public static final int VERSION = 1;
+  public static final int VERSION = 2;
 
   private SlipstreamProtocol() {}
 }

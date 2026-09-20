@@ -14,8 +14,8 @@ import java.io.IOException;
  */
 final class PayloadCodec {
 
-  /** 6 leading doubles (48 bytes) plus the drafting block (69 bytes). */
-  static final int PAYLOAD_BYTES = 117;
+  /** 6 leading doubles (48 bytes) plus the drafting block (78 bytes). */
+  static final int PAYLOAD_BYTES = 126;
 
   private PayloadCodec() {}
 
@@ -35,14 +35,16 @@ final class PayloadCodec {
       int wakeLifetimeTicks,
       int wakeSampleIntervalTicks,
       double leaderBonusPerDrafter,
-      int leaderBonusMaxDrafters) {}
+      int leaderBonusMaxDrafters,
+      boolean cameraAssist,
+      double cameraAssistStrength) {}
 
   /**
    * Drafting switched off. The enabled flag alone stops every drafting force on the client; the
    * numbers are neutral values so nothing downstream can reinterpret them.
    */
   static DraftValues draftDisabled() {
-    return new DraftValues(false, 0.0, 1.0, 0.0, 0.0, 1.5, 1.2, 60, 2, 0.0, 0);
+    return new DraftValues(false, 0.0, 1.0, 0.0, 0.0, 1.5, 1.2, 60, 2, 0.0, 0, false, 0.0);
   }
 
   static byte[] serialize(
@@ -73,6 +75,8 @@ final class PayloadCodec {
     out.writeInt(draft.wakeSampleIntervalTicks());
     out.writeDouble(draft.leaderBonusPerDrafter());
     out.writeInt(draft.leaderBonusMaxDrafters());
+    out.writeBoolean(draft.cameraAssist());
+    out.writeDouble(draft.cameraAssistStrength());
     return bytes.toByteArray();
   }
 }
