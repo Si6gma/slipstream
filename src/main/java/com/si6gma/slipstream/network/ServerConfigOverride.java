@@ -44,10 +44,9 @@ public final class ServerConfigOverride {
       cfg.draftLeaderBonusPerDrafter = draft.leaderBonusPerDrafter();
       cfg.draftLeaderBonusMaxDrafters = draft.leaderBonusMaxDrafters();
       cfg.draftCameraAssistStrength = draft.cameraAssistStrength();
-      // Enabling is server governed, but a player may always opt out: disabling only ever costs
-      // them the assist, so it cannot be used to gain an advantage, and forcing view movement on
-      // someone it makes ill is not worth the consistency.
-      cfg.draftCameraAssist = draft.cameraAssist() && local().draftCameraAssist;
+      // Stored raw. The player's opt out is applied in get() rather than baked in here, so
+      // toggling it in the config screen takes effect without reconnecting.
+      cfg.draftCameraAssist = draft.cameraAssist();
     }
     cfg.validatePostLoad();
     active = cfg;
@@ -115,6 +114,11 @@ public final class ServerConfigOverride {
     merged.draftLeaderBonusPerDrafter = override.draftLeaderBonusPerDrafter;
     merged.draftLeaderBonusMaxDrafters = override.draftLeaderBonusMaxDrafters;
     merged.draftParticlesEnabled = local.draftParticlesEnabled;
+    merged.draftCameraAssistStrength = override.draftCameraAssistStrength;
+    // Enabling is server governed, but a player may always opt out: disabling only ever costs them
+    // the assist, so it cannot buy an advantage, and forcing view movement on someone it makes ill
+    // is not worth the consistency.
+    merged.draftCameraAssist = override.draftCameraAssist && local.draftCameraAssist;
     merged.particlesEnabled = local.particlesEnabled;
     merged.soundsEnabled = local.soundsEnabled;
     merged.soundVolume = local.soundVolume;

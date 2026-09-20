@@ -5,7 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.si6gma.slipstream.network.ServerConfigOverride;
+import com.si6gma.slipstream.network.ServerConfigPayload;
 import org.junit.jupiter.api.AfterEach;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ServerConfigOverrideTest {
@@ -87,5 +91,68 @@ class ServerConfigOverrideTest {
     ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3, null);
     ServerConfigOverride.clear();
     assertFalse(ServerConfigOverride.isBoostAllowed());
+  }
+
+  @Test
+  void get_everyConfigFieldIsExplicitlyClassified() {
+    // A hand written field-by-field merge is exactly the shape that lets a new field slip through
+    // and silently fall back to compiled defaults, which is how camera assist broke. Adding a
+    // field without deciding who owns it now fails here instead of in the air.
+    Set<String> serverOwned =
+        Set.of(
+            "effectHeightBlocks", "accelerationPerTick", "maxSpeedBlocksPerTick",
+            "waterSprayHeightBlocks", "liftStrength", "effectSpeedThreshold",
+            "draftingEnabled", "draftAccelerationPerTick", "draftSpeedMultiplier",
+            "draftPullStrength", "draftReleaseAngleDeg", "wakeBaseRadius", "wakeSpreadRate",
+            "wakeLifetimeTicks", "wakeSampleIntervalTicks", "draftLeaderBonusPerDrafter",
+            "draftLeaderBonusMaxDrafters", "draftCameraAssistStrength", "draftCameraAssist");
+    Set<String> clientOwned =
+        Set.of(
+            "particlesEnabled", "soundsEnabled", "soundVolume", "fovKickEnabled",
+            "fovKickStrength", "clientParticlesOnVanillaServers", "remotePlayerParticles",
+            "draftParticlesEnabled");
+    Set<String> serverLocalOnly = Set.of("versionEnforcement", "handshakeTimeoutTicks");
+
+    for (Field field : SlipstreamConfig.class.getDeclaredFields()) {
+      if (Modifier.isStatic(field.getModifiers())) continue;
+      String name = field.getName();
+      assertTrue(
+          serverOwned.contains(name) || clientOwned.contains(name)
+              || serverLocalOnly.contains(name),
+          "config field '" + name + "' is not classified. Decide who owns it and make sure get()"
+              + " copies it from the right side.");
+    }
+  }
+
+  @Test
+  void get_cameraAssistTakesStrengthFromServerAndRespectsTheLocalOptOut() {
+    SlipstreamConfig local = new SlipstreamConfig();
+    local.draftCameraAssist = true;
+    local.draftCameraAssistStrength = 0.05;
+    ServerConfigOverride.setLocalConfigForTests(local);
+    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3, draftSettings(true, 0.42));
+
+    assertEquals(0.42, ServerConfigOverride.get().draftCameraAssistStrength, 1e-9);
+    assertTrue(ServerConfigOverride.get().draftCameraAssist);
+
+    local.draftCameraAssist = false;
+    assertFalse(ServerConfigOverride.get().draftCameraAssist);
+  }
+
+  @Test
+  void get_cameraAssistOffOnTheServerCannotBeTurnedBackOnLocally() {
+    SlipstreamConfig local = new SlipstreamConfig();
+    local.draftCameraAssist = true;
+    ServerConfigOverride.setLocalConfigForTests(local);
+    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3, draftSettings(false, 0.5));
+    assertFalse(ServerConfigOverride.get().draftCameraAssist);
+  }
+
+  private static ServerConfigPayload.DraftSettings draftSettings(
+      boolean cameraAssist, double cameraAssistStrength) {
+    SlipstreamConfig source = new SlipstreamConfig();
+    source.draftCameraAssist = cameraAssist;
+    source.draftCameraAssistStrength = cameraAssistStrength;
+    return ServerConfigPayload.DraftSettings.from(source);
   }
 }
