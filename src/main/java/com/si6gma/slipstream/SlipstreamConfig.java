@@ -36,4 +36,23 @@ public class SlipstreamConfig {
     soundVolume = Math.max(0.0, Math.min(soundVolume, 2.0));
     fovKickStrength = Math.max(0.0, Math.min(fovKickStrength, 0.5));
   }
+
+  /** Returns an independent copy. Used so edits never mutate a config another thread is reading. */
+  public SlipstreamConfig copy() {
+    SlipstreamConfig c = new SlipstreamConfig();
+    c.effectHeightBlocks = effectHeightBlocks;
+    c.accelerationPerTick = accelerationPerTick;
+    c.maxSpeedBlocksPerTick = maxSpeedBlocksPerTick;
+    c.waterSprayHeightBlocks = waterSprayHeightBlocks;
+    c.liftStrength = liftStrength;
+    c.effectSpeedThreshold = effectSpeedThreshold;
+    c.particlesEnabled = particlesEnabled;
+    c.soundsEnabled = soundsEnabled;
+    c.soundVolume = soundVolume;
+    c.fovKickEnabled = fovKickEnabled;
+    c.fovKickStrength = fovKickStrength;
+    c.clientParticlesOnVanillaServers = clientParticlesOnVanillaServers;
+    c.remotePlayerParticles = remotePlayerParticles;
+    return c;
+  }
 }

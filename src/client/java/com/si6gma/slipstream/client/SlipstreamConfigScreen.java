@@ -8,13 +8,15 @@ import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Builds the Cloth Config screen. Edits the live config in place and saves on close. */
+/** Builds the Cloth Config screen. Edits a draft config and publishes it atomically on save. */
 public final class SlipstreamConfigScreen {
 
   private SlipstreamConfigScreen() {}
 
   public static Screen create(Screen parent) {
-    SlipstreamConfig cfg = Slipstream.getConfig();
+    // Edit a private draft, then publish it atomically on save. Never mutate the live config:
+    // the server thread reads it every tick.
+    SlipstreamConfig cfg = Slipstream.getConfig().copy();
     SlipstreamConfig defaults = new SlipstreamConfig();
     ConfigBuilder builder =
         ConfigBuilder.create()
@@ -122,11 +124,7 @@ public final class SlipstreamConfigScreen {
             .setSaveConsumer(v -> cfg.soundVolume = v)
             .build());
 
-    builder.setSavingRunnable(
-        () -> {
-          cfg.validatePostLoad();
-          Slipstream.saveConfig();
-        });
+    builder.setSavingRunnable(() -> Slipstream.applyConfig(cfg));
     return builder.build();
   }
 

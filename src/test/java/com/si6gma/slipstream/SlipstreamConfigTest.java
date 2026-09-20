@@ -127,4 +127,24 @@ class SlipstreamConfigTest {
     assertEquals(0.0, cfg.soundVolume, 1e-9);
     assertEquals(0.5, cfg.fovKickStrength, 1e-9);
   }
+
+  @Test
+  void copy_isIndependentAndEqualFieldwise() {
+    SlipstreamConfig original = new SlipstreamConfig();
+    original.effectHeightBlocks = 33.0;
+    original.soundVolume = 1.75;
+    original.fovKickEnabled = false;
+    original.remotePlayerParticles = false;
+
+    SlipstreamConfig copy = original.copy();
+    assertEquals(33.0, copy.effectHeightBlocks, 1e-9);
+    assertEquals(1.75, copy.soundVolume, 1e-9);
+    assertEquals(false, copy.fovKickEnabled);
+    assertEquals(false, copy.remotePlayerParticles);
+
+    copy.effectHeightBlocks = 99.0;
+    copy.soundVolume = 0.1;
+    assertEquals(33.0, original.effectHeightBlocks, 1e-9);
+    assertEquals(1.75, original.soundVolume, 1e-9);
+  }
 }
