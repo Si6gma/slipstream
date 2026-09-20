@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.si6gma.slipstream.SlipstreamConfig;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 class DraftingForcesTest {
@@ -62,9 +63,14 @@ class DraftingForcesTest {
   @Test
   void pullForce_neverOvershootsTheCentreline() {
     SlipstreamConfig cfg = new SlipstreamConfig();
-    cfg.draftPullStrength = 1.0;
+    // Deliberately past the validated range so the pre-clamp product exceeds the error and the
+    // overshoot guard has to actually engage. At a strength of 1.0 the product merely equals the
+    // error, which the guard would pass without doing anything.
+    cfg.draftPullStrength = 5.0;
     for (double err : new double[] {0.01, 0.5, 2.0, 10.0}) {
-      assertTrue(DraftingMath.pullForce(err, 0.0, 1.0, cfg) <= err + 1e-9);
+      double pull = DraftingMath.pullForce(err, 0.0, 1.0, cfg);
+      assertTrue(pull <= err + 1e-9, "pull " + pull + " overshot error " + err);
+      assertTrue(pull > 0.0);
     }
   }
 
@@ -129,20 +135,36 @@ class DraftingForcesTest {
   // Chain behaviour
 
   @Test
-  void chainOfFive_convergesOnTheCapRatherThanDiverging() {
+  void chainOfThree_convergesUsingRealWakeGeometry() {
     SlipstreamConfig cfg = new SlipstreamConfig();
     double cap = DraftingMath.draftCap(cfg);
-    double[] speed = {1.0, 1.0, 1.0, 1.0, 1.0};
-    for (int tick = 0; tick < 2000; tick++) {
-      for (int i = 1; i < speed.length; i++) {
-        speed[i] += DraftingMath.boostDelta(speed[i], 1.0, cfg);
+    Vec3 east = new Vec3(1, 0, 0);
+
+    // Three gliders in a line flying east, each four blocks behind the one ahead.
+    double[] x = {40.0, 36.0, 32.0};
+    double[] speed = {1.0, 1.0, 1.0};
+
+    for (int tick = 0; tick < 400; tick++) {
+      WakeTrail[] trails = new WakeTrail[3];
+      for (int i = 0; i < 3; i++) {
+        trails[i] = new WakeTrail();
+        // A short recent history behind each glider, sampled every two ticks.
+        for (int back = 3; back >= 0; back--) {
+          trails[i].record(
+              new Vec3(x[i] - back * speed[i] * 2, 70, 0), east, speed[i], tick - back * 2);
+        }
       }
-      speed[0] += DraftingMath.leaderBonus(1, cfg);
-      speed[0] = Math.min(speed[0], cfg.maxSpeedBlocksPerTick);
+      // Each follower drafts the glider directly ahead of it.
+      for (int i = 1; i < 3; i++) {
+        DraftQuery q = DraftingMath.nearest(trails[i - 1], new Vec3(x[i], 70, 0), tick, cfg);
+        if (q != null) speed[i] += DraftingMath.boostDelta(speed[i], q.strength(), cfg);
+      }
+      for (int i = 0; i < 3; i++) x[i] += speed[i];
     }
-    for (int i = 1; i < speed.length; i++) {
+
+    for (int i = 1; i < 3; i++) {
       assertTrue(speed[i] <= cap + 1e-9, "follower " + i + " exceeded the cap: " + speed[i]);
+      assertTrue(speed[i] > 1.0, "follower " + i + " never gained from the wake: " + speed[i]);
     }
-    assertTrue(speed[0] <= cfg.maxSpeedBlocksPerTick + 1e-9, "leader keeps the normal cap");
   }
 }

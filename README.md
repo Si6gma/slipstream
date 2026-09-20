@@ -102,8 +102,10 @@ entirely.
 
 Client only options are never overridden by a server. With
 [Mod Menu](https://modrinth.com/mod/modmenu) and
-[Cloth Config](https://modrinth.com/mod/cloth-config) installed, every option
-is editable in game under Mods > Slipstream.
+[Cloth Config](https://modrinth.com/mod/cloth-config) installed, the options above are editable in
+game under Mods > Slipstream. A few wake tuning values (wake radius and spread, wake lifetime and
+sampling interval, and the leader bonus) are file only, since they are server tuning knobs rather
+than player preferences.
 
 ---
 
