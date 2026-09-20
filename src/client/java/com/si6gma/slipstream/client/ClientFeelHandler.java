@@ -115,23 +115,30 @@ public final class ClientFeelHandler {
     }
 
     WakeTrackers.client().prune(local.tickCount, cfg);
-    if (cfg.particlesEnabled && cfg.draftParticlesEnabled) {
-      drawWakes(level, cfg, local.tickCount);
-    }
 
-    boolean drafting = false;
+    // Find the strongest wake, not merely the first one that qualifies, so the wake drawn as
+    // ridden is the same one the flight code actually applies forces from.
+    UUID draftedLeader = null;
+    DraftQuery draftedQuery = null;
     if (cfg.draftingEnabled) {
       for (UUID id : WakeTrackers.client().ids()) {
         if (id.equals(local.getUUID())) continue;
         DraftQuery q =
             DraftingMath.nearest(
                 WakeTrackers.client().trailFor(id), local.position(), local.tickCount, cfg);
-        if (q != null && q.strength() > DRAFT_ENTRY_THRESHOLD) {
-          drafting = true;
-          break;
+        if (q != null && (draftedQuery == null || q.strength() > draftedQuery.strength())) {
+          draftedQuery = q;
+          draftedLeader = id;
         }
       }
     }
+    boolean drafting = draftedQuery != null && draftedQuery.strength() > DRAFT_ENTRY_THRESHOLD;
+
+    if (cfg.particlesEnabled && cfg.draftParticlesEnabled) {
+      drawWakes(level, cfg, local.tickCount, drafting ? draftedLeader : null);
+      if (drafting) drawDraftStrength(level, local, draftedQuery);
+    }
+
     if (drafting && !wasDrafting && cfg.soundsEnabled) {
       level.playLocalSound(
           local.getX(),
@@ -146,21 +153,80 @@ public final class ClientFeelHandler {
     wasDrafting = drafting;
   }
 
-  private static void drawWakes(ClientLevel level, SlipstreamConfig cfg, int now) {
+  /**
+   * Draws every tracked wake. The one the local player is currently riding is drawn at full
+   * density with no thinning, so entering and leaving a slipstream is unmistakable and the centre
+   * line is visible to steer along. Every other wake stays sparse.
+   *
+   * @param draftedLeader the player whose wake the local player is drafting, or null for none
+   */
+  private static void drawWakes(
+      ClientLevel level, SlipstreamConfig cfg, int now, UUID draftedLeader) {
     var vortex = ModParticles.wingVortex();
     if (vortex == null) return;
     double lifetimeSeconds = cfg.wakeLifetimeTicks / 20.0;
     if (lifetimeSeconds <= 0.0) return;
     for (UUID id : WakeTrackers.client().ids()) {
       WakeTrail trail = WakeTrackers.client().trailFor(id);
-      // Every third sample keeps the wake readable without flooding the particle budget.
-      for (int i = 0; i < trail.size(); i += 3) {
+      boolean riding = id.equals(draftedLeader);
+      // Every third sample keeps an idle wake readable without flooding the particle budget. The
+      // wake being ridden uses every sample, which is the difference you actually notice.
+      int step = riding ? 1 : 3;
+      double floor = riding ? 0.05 : 0.15;
+      for (int i = 0; i < trail.size(); i += step) {
         WakeSample s = trail.sampleAt(i);
         double fade = 1.0 - Math.min(1.0, ((now - s.tick()) / 20.0) / lifetimeSeconds);
-        if (fade <= 0.15) continue;
-        // Drawing sparsely rather than faintly: an old wake thins instead of dimming.
-        if (RANDOM.nextFloat() > fade) continue;
+        if (fade <= floor) continue;
+        // Drawing sparsely rather than faintly: an old wake thins instead of dimming. The ridden
+        // wake skips that thinning entirely so it reads as solid for as long as it is usable.
+        if (!riding && RANDOM.nextFloat() > fade) continue;
         level.addParticle(vortex, s.position().x, s.position().y, s.position().z, 0, 0, 0);
+      }
+    }
+  }
+
+  /**
+   * Continuous feedback that the local player is drafting and how hard. Particles stream past the
+   * player at a density set by draft strength, and when off the centre line a short arc of
+   * particles points at it, so the correction to make is obvious rather than guessed.
+   */
+  private static void drawDraftStrength(ClientLevel level, LocalPlayer local, DraftQuery query) {
+    var vortex = ModParticles.wingVortex();
+    if (vortex == null) return;
+    double strength = query.strength();
+    if (strength <= 0.0) return;
+
+    Vec3 velocity = local.getDeltaMovement();
+    int count = (int) Math.ceil(strength * 4.0);
+    for (int i = 0; i < count; i++) {
+      double side = (RANDOM.nextDouble() - 0.5) * 1.6;
+      double vertical = (RANDOM.nextDouble() - 0.5) * 1.0;
+      double ahead = 1.0 + RANDOM.nextDouble() * 2.0;
+      // Spawned ahead and swept backwards, so they read as air moving past rather than exhaust.
+      level.addParticle(
+          vortex,
+          local.getX() + velocity.x * ahead + side,
+          local.getY() + 0.4 + vertical,
+          local.getZ() + velocity.z * ahead + side,
+          -velocity.x * 0.3,
+          0.0,
+          -velocity.z * 0.3);
+    }
+
+    // Off the centre line by enough to matter: show which way it is.
+    double offset = query.lateralOffset();
+    if (offset > 0.4) {
+      Vec3 toCentre = query.toCentre();
+      for (int i = 1; i <= 2; i++) {
+        double along = offset * (i / 3.0);
+        level.addParticle(
+            vortex,
+            local.getX() + toCentre.x * along,
+            local.getY() + 0.4 + toCentre.y * along,
+            local.getZ() + toCentre.z * along,
+            0,
+            0,
+            0);
       }
     }
   }
