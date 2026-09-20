@@ -20,6 +20,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Client only config: `soundsEnabled`, `soundVolume`, `fovKickEnabled`,
   `fovKickStrength`, `clientParticlesOnVanillaServers`,
   `remotePlayerParticles`
+- Camera assist: while drafting, your view eases toward the wake ahead of you,
+  so following a leader through a turn no longer fights you. Yields instantly
+  when you move your own view, and can be switched off locally
+- Each particle role now has its own colour, size and sprite, so your wingtip
+  vortices, a wake you are near, and a wake you are riding all look different
+- Continuous drafting feedback: the wake you are riding draws at full density,
+  particles stream past you scaled by draft strength, and an arc points at the
+  centre line when you are off it
+- Version handshake: the Fabric client reports its protocol on join, and a
+  server can disable effects or refuse entry for a mismatched or too old
+  client. Vanilla players are never affected. Fabric side only for now
 - Drafting: flying in another glider's wake gives a forward boost and a gentle
   pull toward their line, released by looking away from the wake
 - Wakes are a fading trail of the leader's actual path, so they curve through

@@ -27,6 +27,9 @@ should: building speed, holding altitude, and kicking up whatever's below you.
 - **FOV kick** a subtle widening as ground effect speed builds. Respects the
   vanilla FOV Effects accessibility slider.
 - **Config screen** via Mod Menu and Cloth Config (both optional).
+- **Camera assist** while drafting, your view eases toward the wake ahead of
+  you, so following someone through a turn works without constant correction.
+  Move your own view and it yields immediately.
 - **Drafting** fly into another glider's wake and you gain speed and get drawn
   gently onto their line, enough to hold formation without ever losing your own
   steering. Look away and the pull releases instantly. Wakes fade over a few
@@ -95,6 +98,8 @@ to all online players live.
 | Pull strength      | `0.25`  | Fraction of your offset from the wake corrected per tick   |
 | Pull release angle | `35.0`  | Look this far from the wake and the pull lets go           |
 | Wake particles     | `true`  | Draw other players' wakes (client only)                    |
+| Camera assist      | `true`  | Ease your view toward the wake; you may always turn it off  |
+| Camera assist str. | `0.5`   | 0 to 0.5, how hard the view eases (server pushed)           |
 
 The Paper plugin also has `override-clients` (default `true`) to push server
 values to connecting clients, and `disabled-worlds` to opt specific worlds out
