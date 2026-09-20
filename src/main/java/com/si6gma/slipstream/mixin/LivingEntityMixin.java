@@ -34,8 +34,23 @@ public class LivingEntityMixin implements GroundEffectSampler {
   @Unique private double ege$cacheX, ege$cacheY, ege$cacheZ;
   @Unique private int ege$cacheAge;
 
+  // Per tick sample memo. travel() and the client feel handler both sample the same entity in the
+  // same tick; without this the shared raycast cache would age twice per tick and refresh early.
+  @Unique private GroundEffectSample ege$sample;
+  @Unique private int ege$sampleTick = -1;
+
   @Override
   public GroundEffectSample slipstream$sample(SlipstreamConfig cfg) {
+    LivingEntity self = (LivingEntity) (Object) this;
+    if (ege$sampleTick == self.tickCount) return ege$sample;
+    GroundEffectSample computed = ege$computeSample(cfg);
+    ege$sampleTick = self.tickCount;
+    ege$sample = computed;
+    return computed;
+  }
+
+  @Unique
+  private GroundEffectSample ege$computeSample(SlipstreamConfig cfg) {
     LivingEntity self = (LivingEntity) (Object) this;
     if (!self.isFallFlying()) return null;
     if (self.isUnderWater() || self.isInLava()) return null;
