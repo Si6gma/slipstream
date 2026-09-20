@@ -4,11 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Blocks;
@@ -21,6 +24,7 @@ class GroundEffectParticlesTest {
   /** Records every call so tests can count by particle type. */
   static final class RecordingSink implements ParticleSink {
     final List<ParticleOptions> singles = new ArrayList<>();
+    final List<double[]> singlePositions = new ArrayList<>();
     final List<ParticleOptions> bursts = new ArrayList<>();
     int burstParticles;
 
@@ -35,6 +39,7 @@ class GroundEffectParticlesTest {
         double vz,
         double speed) {
       singles.add(type);
+      singlePositions.add(new double[] {x, y, z});
     }
 
     @Override
@@ -66,9 +71,19 @@ class GroundEffectParticlesTest {
   private static final Vec3 RIGHT = new Vec3(0, 0, -1);
 
   @BeforeAll
-  static void bootstrap() {
+  static void bootstrap() throws ReflectiveOperationException {
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
+    if (ModParticles.wingVortex() == null) {
+      // Bootstrap.bootStrap() freezes BuiltInRegistries as part of vanilla's own static init,
+      // before any mod can register. In the real game Fabric's loader unfreezes registries for
+      // mod init and refreezes afterward; a plain JUnit run never goes through that path, so
+      // force the same registry state here to let this test register the particle type.
+      Field frozen = MappedRegistry.class.getDeclaredField("frozen");
+      frozen.setAccessible(true);
+      frozen.setBoolean(BuiltInRegistries.PARTICLE_TYPE, false);
+      ModParticles.register();
+    }
   }
 
   private static GroundEffectSample water(double dist, double hSpeed) {
@@ -145,22 +160,45 @@ class GroundEffectParticlesTest {
   }
 
   @Test
+  void vortex_spawnsMirroredWingtipPairAboveThePlayer() {
+    RecordingSink sink = new RecordingSink();
+    GroundEffectParticles.emit(
+        ground(1.0, 1.5), new SlipstreamConfig(), 0, RandomSource.create(3L), POS, sink);
+
+    var vortex = ModParticles.wingVortex();
+    assertTrue(vortex != null, "wing vortex particle type must be registered for this test");
+    assertEquals(2, sink.count(vortex), "one vortex per wingtip");
+
+    List<double[]> tips = new ArrayList<>();
+    for (int i = 0; i < sink.singles.size(); i++) {
+      if (sink.singles.get(i) == vortex) tips.add(sink.singlePositions.get(i));
+    }
+    assertEquals(2, tips.size());
+    // RIGHT is (0,0,-1), so the wingtips straddle the player on the z axis, 1.2 blocks out.
+    assertEquals(POS.y + 0.3, tips.get(0)[1], 1e-9);
+    assertEquals(POS.y + 0.3, tips.get(1)[1], 1e-9);
+    assertEquals(POS.z - 1.2, tips.get(0)[2], 1e-9);
+    assertEquals(POS.z + 1.2, tips.get(1)[2], 1e-9);
+  }
+
+  @Test
   void caps_holdAtExtremeSpeed() {
     // One tick that hits both the 2 tick and 3 tick gates: tick 0.
     RecordingSink sink = new RecordingSink();
     GroundEffectParticles.emit(
         water(0.5, 20.0), new SlipstreamConfig(), 0, RandomSource.create(1L), POS, sink);
-    // spray: 8 per side (16), wake: 5, mist: at most 1 FALLING_WATER
-    assertTrue(sink.count(ParticleTypes.SPLASH) <= 21, "splash singles capped at 16 + 5");
-    assertTrue(sink.count(ParticleTypes.FALLING_WATER) <= 1);
+    // spray: 8 per side capped (16), wake: 5 capped, so 21 splash singles total.
+    assertEquals(21, sink.count(ParticleTypes.SPLASH), "splash singles capped at 16 + 5");
+    // Mist only spawns when random.nextInt(3) == 0; this seed does not roll it at tick 0.
+    assertEquals(0, sink.count(ParticleTypes.FALLING_WATER), "mist did not roll for this seed");
     // contact burst at 0.5 blocks: waterProximity 0.9, so 2 + (int)(0.9 * 3) = 4 per side
     assertEquals(8, sink.burstParticles);
 
     RecordingSink groundSink = new RecordingSink();
     GroundEffectParticles.emit(
         ground(0.5, 20.0), new SlipstreamConfig(), 0, RandomSource.create(1L), POS, groundSink);
-    assertTrue(groundSink.countType(ParticleTypes.BLOCK) <= 4, "dust capped at 4");
-    assertTrue(groundSink.count(ParticleTypes.POOF) <= 2, "puffs capped at 2");
+    assertEquals(4, groundSink.countType(ParticleTypes.BLOCK), "dust capped at 4");
+    assertEquals(2, groundSink.count(ParticleTypes.POOF), "puffs capped at 2");
   }
 
   @Test

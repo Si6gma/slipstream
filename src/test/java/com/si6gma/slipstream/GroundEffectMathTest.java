@@ -190,7 +190,7 @@ class GroundEffectMathTest {
   }
 
   @Test
-  void windVolume_capsAtPointSixAtFullProximityAndSpeed() {
+  void windVolume_scalesLinearlyWithVolumeSetting() {
     assertEquals(0.6, GroundEffectMath.windVolume(1.0, 1.0, 1.0), 1e-9);
     assertEquals(1.2, GroundEffectMath.windVolume(1.0, 1.0, 2.0), 1e-9);
   }

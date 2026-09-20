@@ -77,8 +77,9 @@ public final class GroundEffectMath {
   }
 
   /**
-   * Wind rush loop volume. Capped at 0.6 so it sits under the vanilla elytra loop, which already
-   * runs at up to full volume, and the combined sound reads as a rising whistle.
+   * Wind rush loop volume. 0.6 is the coefficient at a volume scale of 1.0, chosen so it sits
+   * under the vanilla elytra loop, which already runs at up to full volume, and the combined
+   * sound reads as a rising whistle.
    */
   public static double windVolume(double proximity, double speedRatio, double volumeScale) {
     return 0.6 * proximity * speedRatio * volumeScale;

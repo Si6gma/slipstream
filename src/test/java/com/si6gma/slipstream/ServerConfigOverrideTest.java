@@ -14,6 +14,7 @@ class ServerConfigOverrideTest {
   void reset() {
     ServerConfigOverride.clear();
     ServerConfigOverride.setLocalConfigForTests(null);
+    ServerConfigOverride.setSingleplayer(false);
   }
 
   @Test
@@ -62,5 +63,29 @@ class ServerConfigOverrideTest {
     assertTrue(ServerConfigOverride.get().soundsEnabled);
     local.soundsEnabled = false;
     assertFalse(ServerConfigOverride.get().soundsEnabled, "screen edits must apply live");
+  }
+
+  @Test
+  void isBoostAllowed_withNoOverrideAndNotSingleplayer_isFalse() {
+    assertFalse(ServerConfigOverride.isBoostAllowed());
+  }
+
+  @Test
+  void isBoostAllowed_inSingleplayer_isTrue() {
+    ServerConfigOverride.setSingleplayer(true);
+    assertTrue(ServerConfigOverride.isBoostAllowed());
+  }
+
+  @Test
+  void isBoostAllowed_afterServerOverride_isTrue() {
+    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3);
+    assertTrue(ServerConfigOverride.isBoostAllowed());
+  }
+
+  @Test
+  void isBoostAllowed_afterDisconnect_isFalseAgain() {
+    ServerConfigOverride.apply(20.0, 0.005, 1.5, 5.0, 0.6, 0.3);
+    ServerConfigOverride.clear();
+    assertFalse(ServerConfigOverride.isBoostAllowed());
   }
 }
