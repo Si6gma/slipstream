@@ -81,4 +81,15 @@ public final class WakeTrail {
   private int oldestIndex() {
     return Math.floorMod(head - (count - 1), CAPACITY);
   }
+
+  /**
+   * Sample at an index counted from the newest, without allocating. Index 0 is the newest sample.
+   * Callers iterate 0 to {@link #size()} exclusive.
+   */
+  public WakeSample sampleAt(int indexFromNewest) {
+    if (indexFromNewest < 0 || indexFromNewest >= count) {
+      throw new IndexOutOfBoundsException("index " + indexFromNewest + " of " + count);
+    }
+    return buffer[Math.floorMod(head - indexFromNewest, CAPACITY)];
+  }
 }

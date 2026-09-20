@@ -12,8 +12,8 @@ import com.si6gma.slipstream.draft.DraftQuery;
 import com.si6gma.slipstream.draft.DraftingMath;
 import com.si6gma.slipstream.draft.WakeSample;
 import com.si6gma.slipstream.draft.WakeTrackers;
+import com.si6gma.slipstream.draft.WakeTrail;
 import com.si6gma.slipstream.network.ServerConfigOverride;
-import java.util.List;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -152,10 +152,10 @@ public final class ClientFeelHandler {
     double lifetimeSeconds = cfg.wakeLifetimeTicks / 20.0;
     if (lifetimeSeconds <= 0.0) return;
     for (UUID id : WakeTrackers.client().ids()) {
-      List<WakeSample> samples = WakeTrackers.client().trailFor(id).samples();
+      WakeTrail trail = WakeTrackers.client().trailFor(id);
       // Every third sample keeps the wake readable without flooding the particle budget.
-      for (int i = 0; i < samples.size(); i += 3) {
-        WakeSample s = samples.get(i);
+      for (int i = 0; i < trail.size(); i += 3) {
+        WakeSample s = trail.sampleAt(i);
         double fade = 1.0 - Math.min(1.0, ((now - s.tick()) / 20.0) / lifetimeSeconds);
         if (fade <= 0.15) continue;
         // Drawing sparsely rather than faintly: an old wake thins instead of dimming.

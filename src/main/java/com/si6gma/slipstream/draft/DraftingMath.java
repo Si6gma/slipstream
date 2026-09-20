@@ -1,7 +1,6 @@
 package com.si6gma.slipstream.draft;
 
 import com.si6gma.slipstream.SlipstreamConfig;
-import java.util.List;
 import net.minecraft.world.phys.Vec3;
 
 /** Pure geometry and force curves for drafting. No Minecraft runtime state. */
@@ -40,17 +39,16 @@ public final class DraftingMath {
    */
   public static DraftQuery nearest(
       WakeTrail trail, Vec3 follower, int nowTick, SlipstreamConfig cfg) {
-    List<WakeSample> samples = trail.samples(); // newest first
-    if (samples.size() < 2) return null;
+    if (trail.size() < 2) return null;
 
     Vec3 bestPoint = null;
     Vec3 bestHeading = null;
     double bestDistSq = Double.MAX_VALUE;
     double bestAgeTicks = 0.0;
 
-    for (int i = 0; i < samples.size() - 1; i++) {
-      WakeSample newer = samples.get(i);
-      WakeSample older = samples.get(i + 1);
+    for (int i = 0; i < trail.size() - 1; i++) {
+      WakeSample newer = trail.sampleAt(i);
+      WakeSample older = trail.sampleAt(i + 1);
 
       // Skip any segment the follower has passed: being ahead of the leader is not drafting.
       if (follower.subtract(newer.position()).dot(newer.heading()) > 0.0) continue;

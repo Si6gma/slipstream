@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class WakeTracker {
 
-  private static final WakeTrail EMPTY = new WakeTrail();
+  private final WakeTrail empty = new WakeTrail();
 
   private final Map<UUID, WakeTrail> trails = new HashMap<>();
 
@@ -36,10 +36,12 @@ public final class WakeTracker {
     }
   }
 
-  /** Never null. An untracked glider yields a shared empty trail, which yields no draft. */
+  /**
+   * Never null. An untracked glider yields this tracker's own empty trail, which yields no draft.
+   */
   public WakeTrail trailFor(UUID id) {
     WakeTrail trail = trails.get(id);
-    return trail != null ? trail : EMPTY;
+    return trail != null ? trail : empty;
   }
 
   public Set<UUID> ids() {
