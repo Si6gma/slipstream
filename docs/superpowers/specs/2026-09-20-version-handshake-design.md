@@ -1,4 +1,4 @@
-# Version Handshake Design
+# Version Handshake and Paper Drafting Settings Design
 
 Date: 2026-09-20
 Status: approved, awaiting implementation plan
@@ -202,6 +202,48 @@ Manual checklist, requiring a working client and server:
 - A 1.0.3 client against a server with this feature: classified legacy after
   three seconds and handled by the policy.
 - Singleplayer and LAN host: the owner is never classified and keeps working.
+
+## Paper plugin: drafting settings
+
+The drafting project deliberately left the Paper plugin untouched, so a Paper
+server still sends only the original six doubles and every client falls back to
+its own local drafting values. For a feature that changes movement speed that is
+the wrong side of the line: a server able to cap ground effect speed should be
+able to cap drafting speed too. This spec closes that gap in the same pass,
+since both changes touch the plugin's join path and its payload writer.
+
+The plugin gains eleven config keys mirroring the mod's own fields, and appends
+them to the payload in exactly this order, which is the order the client's
+decoder already expects:
+
+| Order | Key | Type | Default |
+| --- | --- | --- | --- |
+| 1 | `drafting-enabled` | boolean | `true` |
+| 2 | `draft-acceleration` | double | `0.008` |
+| 3 | `draft-speed-multiplier` | double | `1.15` |
+| 4 | `draft-pull-strength` | double | `0.25` |
+| 5 | `draft-release-angle` | double | `35.0` |
+| 6 | `wake-base-radius` | double | `1.5` |
+| 7 | `wake-spread-rate` | double | `1.2` |
+| 8 | `wake-lifetime-ticks` | int | `60` |
+| 9 | `wake-sample-interval-ticks` | int | `2` |
+| 10 | `draft-leader-bonus-per-drafter` | double | `0.15` |
+| 11 | `draft-leader-bonus-max-drafters` | int | `3` |
+
+Types matter: entries 8, 9 and 11 are written as ints and the rest as doubles,
+with entry 1 as a single boolean byte. Writing a double where the client reads
+an int silently corrupts every field after it, so the plugin's writer and the
+mod's `ServerConfigPayload.encode` must stay byte for byte aligned. A round trip
+test on the mod side already pins the decoder; the plugin gains its own test
+asserting the exact byte length of a full payload.
+
+The existing six values keep their positions and their meanings. The drafting
+block is appended, so a client that predates drafting simply stops reading after
+the sixth double, exactly as the short-payload rule allows in reverse.
+
+`config.yml` gains a commented block for these keys in the style of the existing
+file, and the plugin writes defaults for any key missing from an upgraded
+server's config rather than failing to start.
 
 ## Risks
 
