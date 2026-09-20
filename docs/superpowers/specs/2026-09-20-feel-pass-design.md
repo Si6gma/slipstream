@@ -51,7 +51,7 @@ right           Vec3     travelDir rotated 90 degrees
 method exposed through a duck interface `GroundEffectSampler`:
 
 ```
-@Nullable GroundEffectSample slipstream$sample(SlipstreamConfig cfg);
+GroundEffectSample slipstream$sample(SlipstreamConfig cfg);   // null when no sample
 ```
 
 The method contains the early exits that exist today (not fall flying,
