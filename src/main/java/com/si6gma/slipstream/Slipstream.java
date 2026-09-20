@@ -13,7 +13,8 @@ import com.si6gma.slipstream.network.VersionPolicy.EnforcementPolicy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
@@ -37,9 +38,13 @@ public class Slipstream implements ModInitializer {
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
   private static volatile SlipstreamConfig config;
 
-  // Players who announced the mod's channel on join but have not yet been classified. Populated
-  // on join, emptied when a hello arrives, the deadline passes, or the player disconnects.
-  private static final Map<UUID, Integer> pendingHandshakes = new HashMap<>();
+  /**
+   * Every joining player except the singleplayer owner, keyed to the tick their handshake deadline
+   * expires on. Emptied when a hello arrives, the deadline passes, or the player disconnects.
+   */
+  private static final Map<UUID, Integer> pendingHandshakes = new ConcurrentHashMap<>();
+  /** Players already classified this session. Classification happens exactly once. */
+  private static final Set<UUID> classified = ConcurrentHashMap.newKeySet();
 
   @Override
   public void onInitialize() {
@@ -60,16 +65,19 @@ public class Slipstream implements ModInitializer {
           if (!server.isDedicatedServer() && server.isSingleplayerOwner(player.nameAndId())) {
             return;
           }
-          if (!ServerPlayNetworking.canSend(player, ServerConfigPayload.TYPE)) {
-            // Vanilla: never announced our channel. Nothing sent, nothing enforced.
-            return;
-          }
+          // Deliberately not testing canSend here. A client's channel registration can land
+          // after this event, and bailing out now left that player unclassified forever: no
+          // boost, no message, no log line. Whether they have the mod is decided at the deadline.
           int deadlineTick = server.getTickCount() + getConfig().handshakeTimeoutTicks;
           pendingHandshakes.put(player.getUUID(), deadlineTick);
         });
 
     ServerPlayConnectionEvents.DISCONNECT.register(
-        (handler, server) -> pendingHandshakes.remove(handler.getPlayer().getUUID()));
+        (handler, server) -> {
+          UUID id = handler.getPlayer().getUUID();
+          pendingHandshakes.remove(id);
+          classified.remove(id);
+        });
 
     ServerTickEvents.END_SERVER_TICK.register(Slipstream::checkHandshakeDeadlines);
 
@@ -77,11 +85,12 @@ public class Slipstream implements ModInitializer {
   }
 
   private static void onHello(ServerPlayer player, HelloPayload payload) {
-    // Classification happens once: a second hello, or one from a player not tracked as
-    // pending (already classified), is ignored.
-    if (pendingHandshakes.remove(player.getUUID()) == null) {
+    // A hello classifies the sender whether or not they were still pending. Requiring a pending
+    // entry meant a client whose channel registration arrived late was ignored permanently.
+    if (!classified.add(player.getUUID())) {
       return;
     }
+    pendingHandshakes.remove(player.getUUID());
     ClientState state =
         payload.protocolVersion() == SlipstreamProtocol.VERSION
             ? ClientState.COMPATIBLE
@@ -98,9 +107,15 @@ public class Slipstream implements ModInitializer {
       if (tick < entry.getValue()) continue;
       it.remove();
       ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
-      if (player != null) {
-        classifyAndAct(player, ClientState.LEGACY, HelloPayload.INVALID_PROTOCOL_VERSION);
+      if (player == null) continue;
+      if (!classified.add(player.getUUID())) continue;
+      if (!ServerPlayNetworking.canSend(player, ServerConfigPayload.TYPE)) {
+        // Never announced our channel even after the full timeout: vanilla. Nothing sent,
+        // nothing enforced, and no message. They are simply playing without the mod.
+        continue;
       }
+      // Has the mod but never introduced itself, so it predates the handshake.
+      classifyAndAct(player, ClientState.LEGACY, HelloPayload.INVALID_PROTOCOL_VERSION);
     }
   }
 
