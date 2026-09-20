@@ -1,0 +1,67 @@
+package com.si6gma.slipstream.draft;
+
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * A glider's recent path, newest sample first. Fixed capacity ring buffer: recording past capacity
+ * discards the oldest sample. Age based pruning keeps the trail inside the configured lifetime.
+ */
+public final class WakeTrail {
+
+  /** Holds the longest useful trail: the maximum lifetime at the shortest sampling interval. */
+  public static final int CAPACITY = 200;
+
+  private final WakeSample[] buffer = new WakeSample[CAPACITY];
+  private int head = -1;
+  private int count;
+  private int lastRecordedTick = Integer.MIN_VALUE;
+
+  /** True when enough ticks have passed since the last sample, or nothing has been recorded. */
+  public boolean shouldRecord(int tick, int intervalTicks) {
+    if (count == 0) return true;
+    int elapsed = tick - lastRecordedTick;
+    // A negative elapsed means the tick counter moved backwards, which happens on a dimension
+    // change. Record rather than stalling until the counter catches up.
+    return elapsed < 0 || elapsed >= intervalTicks;
+  }
+
+  public void record(Vec3 position, Vec3 heading, double speed, int tick) {
+    head = (head + 1) % CAPACITY;
+    buffer[head] = new WakeSample(position, heading, speed, tick);
+    if (count < CAPACITY) count++;
+    lastRecordedTick = tick;
+  }
+
+  /** Drops every sample older than maxAgeTicks relative to nowTick. */
+  public void pruneOlderThan(int nowTick, int maxAgeTicks) {
+    while (count > 0) {
+      int oldest = oldestIndex();
+      if (nowTick - buffer[oldest].tick() <= maxAgeTicks) break;
+      buffer[oldest] = null;
+      count--;
+    }
+  }
+
+  public boolean isEmpty() {
+    return count == 0;
+  }
+
+  public int size() {
+    return count;
+  }
+
+  /** Samples newest first. Returns a fresh list; callers may iterate freely. */
+  public List<WakeSample> samples() {
+    List<WakeSample> out = new ArrayList<>(count);
+    for (int i = 0; i < count; i++) {
+      out.add(buffer[Math.floorMod(head - i, CAPACITY)]);
+    }
+    return out;
+  }
+
+  private int oldestIndex() {
+    return Math.floorMod(head - (count - 1), CAPACITY);
+  }
+}
