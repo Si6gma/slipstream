@@ -1,7 +1,5 @@
 package com.si6gma.slipstream.paper;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
 import org.bukkit.Bukkit;
@@ -155,32 +153,34 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     return List.of();
   }
 
-  // 6 doubles × 8 bytes = 48 bytes; pre-sized to avoid internal ByteArrayOutputStream resize.
-  // Field order must match ServerConfigOverride.apply() on the Fabric side.
-  private static byte[] serializePayload(
-      double effectHeight, double acceleration, double maxSpeed,
-      double waterSprayHeight, double liftStrength, double speedThreshold) throws IOException {
-    ByteArrayOutputStream bytes = new ByteArrayOutputStream(48);
-    DataOutputStream out = new DataOutputStream(bytes);
-    out.writeDouble(effectHeight);
-    out.writeDouble(acceleration);
-    out.writeDouble(maxSpeed);
-    out.writeDouble(waterSprayHeight);
-    out.writeDouble(liftStrength);
-    out.writeDouble(speedThreshold);
-    return bytes.toByteArray();
+  /** Drafting values as configured. Defaults mirror the mod's own. */
+  private PayloadCodec.DraftValues draftFromConfig() {
+    return new PayloadCodec.DraftValues(
+        getConfig().getBoolean("drafting-enabled", true),
+        getConfig().getDouble("draft-acceleration", 0.008),
+        getConfig().getDouble("draft-speed-multiplier", 1.15),
+        getConfig().getDouble("draft-pull-strength", 0.25),
+        getConfig().getDouble("draft-release-angle", 35.0),
+        getConfig().getDouble("wake-base-radius", 1.5),
+        getConfig().getDouble("wake-spread-rate", 1.2),
+        getConfig().getInt("wake-lifetime-ticks", 60),
+        getConfig().getInt("wake-sample-interval-ticks", 2),
+        getConfig().getDouble("draft-leader-bonus-per-drafter", 0.15),
+        getConfig().getInt("draft-leader-bonus-max-drafters", 3));
   }
+
 
   void sendConfig(Player player) {
     if (!player.isOnline()) return;
     try {
-      player.sendPluginMessage(this, CHANNEL, serializePayload(
+      player.sendPluginMessage(this, CHANNEL, PayloadCodec.serialize(
           getConfig().getDouble("effect-height", 20.0),
           getConfig().getDouble("acceleration", 0.005),
           getConfig().getDouble("max-speed", 1.5),
           getConfig().getDouble("water-spray-height", 5.0),
           getConfig().getDouble("lift-strength", 0.6),
-          getConfig().getDouble("effect-speed-threshold", 0.3)));
+          getConfig().getDouble("effect-speed-threshold", 0.3),
+          draftFromConfig()));
     } catch (IOException ex) {
       getLogger().warning("Failed to send config to " + player.getName() + ": " + ex.getMessage());
     }
@@ -193,13 +193,14 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   private void sendDisabledConfig(Player player) {
     if (!player.isOnline()) return;
     try {
-      player.sendPluginMessage(this, CHANNEL, serializePayload(
+      player.sendPluginMessage(this, CHANNEL, PayloadCodec.serialize(
           getConfig().getDouble("effect-height", 20.0),
           0.0,
           getConfig().getDouble("max-speed", 1.5),
           getConfig().getDouble("water-spray-height", 5.0),
           0.0,
-          1.0));
+          1.0,
+          PayloadCodec.draftDisabled()));
     } catch (IOException ex) {
       getLogger()
           .warning("Failed to send disabled config to " + player.getName() + ": " + ex.getMessage());

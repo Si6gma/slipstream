@@ -44,3 +44,74 @@ lift-strength: 0.6
 # even when the player decelerates slightly by leveling out, but high enough
 # that it won't trigger at near-standstill glide speeds.
 effect-speed-threshold: 0.3
+
+# ---------------------------------------------------------------------------
+# Drafting
+#
+# Flying in another glider's wake gives you a forward boost and a gentle pull
+# toward the centre of their wake, so you semi follow their line without losing
+# your own steering. The pull releases the moment you look away from the wake.
+#
+# Every glider leaves a trail of where they have been, which fades over a few
+# seconds. Your draft strength is strongest at the centre of a fresh wake and
+# falls off both as you drift sideways out of it and as the wake ages.
+#
+# These are pushed to clients like the values above, so the server decides how
+# strong drafting is rather than each player deciding for themselves.
+# ---------------------------------------------------------------------------
+
+# Master switch. Set to false to turn drafting off server-wide while leaving
+# the ground effect untouched.
+drafting-enabled: true
+
+# Speed added per tick at the dead centre of a fresh wake, in blocks/tick.
+# Compare with acceleration above (0.005) for the ground effect: drafting is
+# deliberately a little stronger, since holding someone's wake is harder than
+# flying near the ground.
+draft-acceleration: 0.008
+
+# Speed ceiling while drafting, as a multiple of max-speed. At 1.15 a drafting
+# player tops out 15% above the normal cap, which is what makes overtaking
+# possible. Set to 1.0 to let drafters match the leader but never pass them.
+# Values below 1.0 are ignored; drafting is never slower than the normal cap.
+draft-speed-multiplier: 1.15
+
+# How hard you are drawn toward the centre line of the wake, as the fraction of
+# your sideways offset corrected each tick. 0.25 closes most of the gap over
+# about half a second. Raise it for a stronger groove, lower it for a looser
+# one, 0.0 to keep the speed boost but remove the pull entirely.
+draft-pull-strength: 0.25
+
+# How far you can look away from the wake's direction before the pull lets go,
+# in degrees. Below this the pull fades smoothly as you turn away; at or beyond
+# it there is no pull at all, so looking where you want to go always wins.
+draft-release-angle: 35.0
+
+# Half width of a brand new wake, in blocks. Inside this distance of the centre
+# line you are drafting; outside it you are not.
+wake-base-radius: 1.5
+
+# Extra half width a wake gains per second as it ages, in blocks. A wake
+# spreads as it drifts, so an old one is wide but weak rather than narrow and
+# strong. Set to 0.0 for wakes that stay a constant width.
+wake-spread-rate: 1.2
+
+# How long a wake stays draftable, in ticks (20 ticks = 1 second). At 60 you
+# can still catch a line someone flew three seconds ago. Strength fades
+# linearly to nothing across this time.
+wake-lifetime-ticks: 60
+
+# How often each glider's position is recorded into their wake, in ticks.
+# At 2 that is ten samples a second. Lower is smoother through tight turns and
+# slightly more work per tick; higher is cheaper and coarser.
+wake-sample-interval-ticks: 2
+
+# Speed the leader gains for each player sitting in their wake, as a fraction
+# of draft-acceleration. Real aerodynamics: a trailing body reduces the
+# leader's drag. Deliberately small so leading never beats drafting, and the
+# leader is always held to the normal max-speed rather than the raised one.
+draft-leader-bonus-per-drafter: 0.15
+
+# Most drafters that count toward the leader bonus, so a large group cannot
+# push whoever is in front absurdly fast.
+draft-leader-bonus-max-drafters: 3
