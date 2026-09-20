@@ -171,4 +171,63 @@ class GroundEffectMathTest {
   void liftForce_zeroLiftStrength_isZero() {
     assertEquals(0.0, GroundEffectMath.liftForce(-0.05, -1.9, 1.0, 0.0, 1.5, 1.5), 1e-9);
   }
+
+  // speedRatio()
+
+  @Test
+  void speedRatio_clampsToUnitRange() {
+    assertEquals(0.0, GroundEffectMath.speedRatio(0.0, 1.5), 1e-9);
+    assertEquals(0.5, GroundEffectMath.speedRatio(0.75, 1.5), 1e-9);
+    assertEquals(1.0, GroundEffectMath.speedRatio(3.0, 1.5), 1e-9);
+    assertEquals(0.0, GroundEffectMath.speedRatio(1.0, 0.0), 1e-9);
+  }
+
+  // windVolume() / windPitch()
+
+  @Test
+  void windVolume_zeroWhenOutOfGroundEffect() {
+    assertEquals(0.0, GroundEffectMath.windVolume(0.0, 1.0, 1.0), 1e-9);
+  }
+
+  @Test
+  void windVolume_scalesLinearlyWithVolumeSetting() {
+    assertEquals(0.6, GroundEffectMath.windVolume(1.0, 1.0, 1.0), 1e-9);
+    assertEquals(1.2, GroundEffectMath.windVolume(1.0, 1.0, 2.0), 1e-9);
+  }
+
+  @Test
+  void windPitch_risesFromOneToOnePointFour() {
+    assertEquals(1.0, GroundEffectMath.windPitch(0.0), 1e-9);
+    assertEquals(1.4, GroundEffectMath.windPitch(1.0), 1e-9);
+  }
+
+  // wakeVolume() / skimVolume()
+
+  @Test
+  void wakeVolume_scalesWithProximityAndSpeed() {
+    assertEquals(0.5, GroundEffectMath.wakeVolume(1.0, 1.0, 1.0), 1e-9);
+    assertEquals(0.125, GroundEffectMath.wakeVolume(0.5, 0.5, 1.0), 1e-9);
+  }
+
+  @Test
+  void skimVolume_isQuiet() {
+    assertEquals(0.15, GroundEffectMath.skimVolume(1.0, 1.0), 1e-9);
+    assertEquals(0.0, GroundEffectMath.skimVolume(0.0, 1.0), 1e-9);
+  }
+
+  // fovKickTarget() / smooth()
+
+  @Test
+  void fovKickTarget_zeroAtZeroProximity() {
+    assertEquals(0.0, GroundEffectMath.fovKickTarget(0.1, 0.0, 1.0), 1e-9);
+    assertEquals(0.1, GroundEffectMath.fovKickTarget(0.1, 1.0, 1.0), 1e-9);
+  }
+
+  @Test
+  void smooth_convergesTowardTarget() {
+    double v = 0.0;
+    for (int i = 0; i < 100; i++) v = GroundEffectMath.smooth(v, 1.0, 0.1);
+    assertTrue(Math.abs(1.0 - v) < 1e-4, "smooth should converge, got " + v);
+    assertEquals(0.1, GroundEffectMath.smooth(0.0, 1.0, 0.1), 1e-9);
+  }
 }

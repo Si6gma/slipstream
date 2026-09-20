@@ -3,7 +3,7 @@
   "package": "com.si6gma.slipstream.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": ["LivingEntityMixin"],
-  "client": [],
+  "client": ["client.AbstractClientPlayerMixin"],
   "injectors": {
     "defaultRequire": 1
   }

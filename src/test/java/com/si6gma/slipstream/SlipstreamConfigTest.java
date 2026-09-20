@@ -90,4 +90,61 @@ class SlipstreamConfigTest {
     assertEquals(0.6, cfg.liftStrength, 1e-9);
     assertEquals(0.3, cfg.effectSpeedThreshold, 1e-9);
   }
+
+  @Test
+  void newClientFields_defaults() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    assertEquals(true, cfg.soundsEnabled);
+    assertEquals(1.0, cfg.soundVolume, 1e-9);
+    assertEquals(true, cfg.fovKickEnabled);
+    assertEquals(0.1, cfg.fovKickStrength, 1e-9);
+    assertEquals(true, cfg.clientParticlesOnVanillaServers);
+    assertEquals(true, cfg.remotePlayerParticles);
+  }
+
+  @Test
+  void validatePostLoad_newFields_nanResetToDefaults() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    cfg.soundVolume = Double.NaN;
+    cfg.fovKickStrength = Double.NaN;
+    cfg.validatePostLoad();
+    assertEquals(1.0, cfg.soundVolume, 1e-9);
+    assertEquals(0.1, cfg.fovKickStrength, 1e-9);
+  }
+
+  @Test
+  void validatePostLoad_newFields_clampToRange() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    cfg.soundVolume = 5.0;
+    cfg.fovKickStrength = -1.0;
+    cfg.validatePostLoad();
+    assertEquals(2.0, cfg.soundVolume, 1e-9);
+    assertEquals(0.0, cfg.fovKickStrength, 1e-9);
+
+    cfg.soundVolume = -1.0;
+    cfg.fovKickStrength = 3.0;
+    cfg.validatePostLoad();
+    assertEquals(0.0, cfg.soundVolume, 1e-9);
+    assertEquals(0.5, cfg.fovKickStrength, 1e-9);
+  }
+
+  @Test
+  void copy_isIndependentAndEqualFieldwise() {
+    SlipstreamConfig original = new SlipstreamConfig();
+    original.effectHeightBlocks = 33.0;
+    original.soundVolume = 1.75;
+    original.fovKickEnabled = false;
+    original.remotePlayerParticles = false;
+
+    SlipstreamConfig copy = original.copy();
+    assertEquals(33.0, copy.effectHeightBlocks, 1e-9);
+    assertEquals(1.75, copy.soundVolume, 1e-9);
+    assertEquals(false, copy.fovKickEnabled);
+    assertEquals(false, copy.remotePlayerParticles);
+
+    copy.effectHeightBlocks = 99.0;
+    copy.soundVolume = 0.1;
+    assertEquals(33.0, original.effectHeightBlocks, 1e-9);
+    assertEquals(1.75, original.soundVolume, 1e-9);
+  }
 }

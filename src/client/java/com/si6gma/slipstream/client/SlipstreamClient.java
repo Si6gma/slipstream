@@ -8,7 +8,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 
 public class SlipstreamClient implements ClientModInitializer {
 
@@ -16,9 +15,6 @@ public class SlipstreamClient implements ClientModInitializer {
   public void onInitializeClient() {
     ParticleProviderRegistry.getInstance()
         .register(ModParticles.wingVortex(), WingVortexParticle.Factory::new);
-
-    PayloadTypeRegistry.clientboundPlay()
-        .register(ServerConfigPayload.TYPE, ServerConfigPayload.CODEC);
 
     // Apply server config when received from either a Fabric server or the Paper
     // plugin.
@@ -47,5 +43,7 @@ public class SlipstreamClient implements ClientModInitializer {
           ServerConfigOverride.clear();
           ServerConfigOverride.setSingleplayer(false);
         });
+
+    ClientFeelHandler.register();
   }
 }

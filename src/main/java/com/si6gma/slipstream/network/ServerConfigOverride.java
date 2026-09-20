@@ -12,6 +12,9 @@ public final class ServerConfigOverride {
 
   private static volatile SlipstreamConfig active = null;
   private static volatile boolean singleplayer = false;
+  private static volatile SlipstreamConfig localForTests = null;
+
+  private ServerConfigOverride() {}
 
   public static void apply(
       double effectHeight,
@@ -53,9 +56,40 @@ public final class ServerConfigOverride {
     return singleplayer || active != null;
   }
 
-  /** Returns the server override if one was received, otherwise the player's local config. */
+  /** Test hook: substitute the local config without touching the config file. */
+  public static void setLocalConfigForTests(SlipstreamConfig cfg) {
+    localForTests = cfg;
+  }
+
+  private static SlipstreamConfig local() {
+    SlipstreamConfig test = localForTests;
+    return test != null ? test : Slipstream.getConfig();
+  }
+
+  /**
+   * Returns the effective config. Without a server override this is the local config itself.
+   * With one, the six physics fields come from the server and every other field is copied
+   * fresh from the local config, so a server can never change client-only preferences and
+   * config screen edits take effect immediately.
+   */
   public static SlipstreamConfig get() {
     SlipstreamConfig override = active;
-    return override != null ? override : Slipstream.getConfig();
+    SlipstreamConfig local = local();
+    if (override == null) return local;
+    SlipstreamConfig merged = new SlipstreamConfig();
+    merged.effectHeightBlocks = override.effectHeightBlocks;
+    merged.accelerationPerTick = override.accelerationPerTick;
+    merged.maxSpeedBlocksPerTick = override.maxSpeedBlocksPerTick;
+    merged.waterSprayHeightBlocks = override.waterSprayHeightBlocks;
+    merged.liftStrength = override.liftStrength;
+    merged.effectSpeedThreshold = override.effectSpeedThreshold;
+    merged.particlesEnabled = local.particlesEnabled;
+    merged.soundsEnabled = local.soundsEnabled;
+    merged.soundVolume = local.soundVolume;
+    merged.fovKickEnabled = local.fovKickEnabled;
+    merged.fovKickStrength = local.fovKickStrength;
+    merged.clientParticlesOnVanillaServers = local.clientParticlesOnVanillaServers;
+    merged.remotePlayerParticles = local.remotePlayerParticles;
+    return merged;
   }
 }
