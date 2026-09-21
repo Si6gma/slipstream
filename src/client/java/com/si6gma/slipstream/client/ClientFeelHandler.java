@@ -8,6 +8,7 @@ import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.LocalParticleSink;
 import com.si6gma.slipstream.ModParticles;
 import com.si6gma.slipstream.SlipstreamConfig;
+import com.si6gma.slipstream.draft.CameraAssistMath;
 import com.si6gma.slipstream.draft.DraftQuery;
 import com.si6gma.slipstream.draft.DraftScan;
 import com.si6gma.slipstream.draft.WakeSample;
@@ -39,9 +40,11 @@ public final class ClientFeelHandler {
   private static float fovKick;
   private static GroundEffectWindSound wind;
   private static boolean wasDrafting;
-  /** How far we left the view last tick, so a larger change means the player steered. NaN = idle. */
+  /** Where we left the view last tick, so any further change is the player's own. NaN = idle. */
   private static float assistedYaw = Float.NaN;
-  private static final float PLAYER_STEER_DEGREES = 0.75f;
+  private static float assistedPitch = Float.NaN;
+  /** How much of the view the assist currently owns, in [0, 1]. */
+  private static double assistAuthority = 1.0;
   private static final double AIM_LOOKAHEAD_BLOCKS = 8.0;
 
   private ClientFeelHandler() {}
@@ -62,6 +65,7 @@ public final class ClientFeelHandler {
       fovKick = 0.0f;
       LocalGroundEffectState.clear();
       wasDrafting = false;
+      resetCameraAssist();
       // Only ever clear our own side here. The server tracker is cleared on the server thread by
       // SERVER_STOPPED; touching it from the client thread races the integrated server.
       WakeTrackers.client().clear();
@@ -144,7 +148,7 @@ public final class ClientFeelHandler {
     if (drafting) {
       assistCamera(local, draftedQuery, cfg);
     } else {
-      assistedYaw = Float.NaN;
+      resetCameraAssist();
     }
 
     if (worthAnnouncing && !wasDrafting && cfg.soundsEnabled) {
@@ -211,39 +215,72 @@ public final class ClientFeelHandler {
    * and makes the slipstream carry you rather than merely shove you sideways.
    *
    * <p>It aims at a point further along the wake rather than at the wake's heading, so climbs and
-   * dives are followed as well as turns. It yields completely the moment the player turns their
-   * own view, so it can never take the controls away.
+   * dives are followed as well as turns.
+   *
+   * <p>Both axes yield. Any view movement beyond the nudge we last applied is read as steering on
+   * either yaw or pitch, and it buys back authority in proportion: a small correction leaves the
+   * assist mostly intact, a real steer switches it off outright. Authority is surrendered on the
+   * tick the hand moves and returned over about a second, so holding a turn is a clean handover
+   * rather than the alternating stand down and full strength snap back this used to do. See
+   * {@link CameraAssistMath} for the rule and its tests.
    */
   private static void assistCamera(LocalPlayer local, DraftQuery query, SlipstreamConfig cfg) {
     if (!cfg.draftCameraAssist || cfg.draftCameraAssistStrength <= 0.0) {
-      assistedYaw = Float.NaN;
+      resetCameraAssist();
       return;
     }
-    // If the view moved by more than our own last nudge, the player is steering. Stand down for
-    // this tick and resync, so the assist never wrestles the mouse.
-    if (!Float.isNaN(assistedYaw)
-        && Math.abs(Mth.wrapDegrees(local.getYRot() - assistedYaw)) > PLAYER_STEER_DEGREES) {
-      assistedYaw = Float.NaN;
-      return;
+
+    // Whatever the view moved beyond where we left it is the player steering, on either axis. A
+    // nudge costs the assist some of its authority and a real steer costs all of it, so there is
+    // a handover rather than a fight.
+    if (!Float.isNaN(assistedYaw) && !Float.isNaN(assistedPitch)) {
+      double input =
+          CameraAssistMath.playerInputDeg(
+              local.getYRot(), assistedYaw, local.getXRot(), assistedPitch);
+      assistAuthority =
+          CameraAssistMath.nextAuthority(
+              assistAuthority,
+              CameraAssistMath.yieldTarget(input),
+              CameraAssistMath.AUTHORITY_RECOVERY_PER_TICK);
     }
 
     Vec3 target = query.point().add(query.wakeHeading().scale(AIM_LOOKAHEAD_BLOCKS));
     Vec3 toTarget = target.subtract(local.getEyePosition());
     double horizontal = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
     if (horizontal < 1.0e-4) {
-      assistedYaw = Float.NaN;
+      resetCameraAssist();
+      return;
+    }
+
+    float rate =
+        (float)
+            CameraAssistMath.assistRate(
+                cfg.draftCameraAssistStrength, query.strength(), assistAuthority);
+    if (rate <= 0.0f) {
+      // Yielded completely: touch neither axis, and resync to where the player put the view so
+      // next tick measures their movement rather than a stale nudge of ours.
+      assistedYaw = local.getYRot();
+      assistedPitch = local.getXRot();
       return;
     }
 
     float targetYaw = (float) Math.toDegrees(Math.atan2(-toTarget.x, toTarget.z));
     float targetPitch = (float) Math.toDegrees(-Math.atan2(toTarget.y, horizontal));
-    float rate = (float) (cfg.draftCameraAssistStrength * query.strength());
 
     float yaw = local.getYRot() + Mth.wrapDegrees(targetYaw - local.getYRot()) * rate;
-    float pitch = local.getXRot() + (targetPitch - local.getXRot()) * rate;
+    float pitch =
+        Mth.clamp(local.getXRot() + (targetPitch - local.getXRot()) * rate, -90.0f, 90.0f);
     local.setYRot(yaw);
-    local.setXRot(Mth.clamp(pitch, -90.0f, 90.0f));
+    local.setXRot(pitch);
     assistedYaw = yaw;
+    assistedPitch = pitch;
+  }
+
+  /** Forgets the view the assist was steering and hands it back at full authority next time. */
+  private static void resetCameraAssist() {
+    assistedYaw = Float.NaN;
+    assistedPitch = Float.NaN;
+    assistAuthority = 1.0;
   }
 
   /**

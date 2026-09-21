@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 173 tests pass across both modules.
+`./gradlew build` is green and 189 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -73,14 +73,30 @@ This was a prerequisite for item 5: the camera assist aims at
 `point + wakeHeading * 8`, so a lagging heading aimed it off the path during
 precisely the turns it was added to help with.
 
-### 5. Rework the camera assist so it never fights the player
+### 5. Rework the camera assist so it never fights the player (done)
 
-`assistCamera` tracks `assistedYaw` for its yield check but writes `setXRot`
-unconditionally, so pitch has no yield at all and a player looking down while
-drafting is fought every tick with no escape. `PLAYER_STEER_DEGREES` of `0.75`
-also means any real steering input kills the assist until the hand stops
-entirely, which is backwards. Both axes should yield, and input should ease the
-assist off rather than switch it off.
+`assistCamera` tracked `assistedYaw` only and wrote `setXRot` unconditionally,
+so pitch had no yield and a player looking down was fought every tick. The
+`PLAYER_STEER_DEGREES` check was also a switch rather than a handover: it stood
+the assist down for one tick, then applied it at full strength on the next, so
+holding a turn produced a nudge every other tick.
+
+`CameraAssistMath` in `src/main` now owns the rule, as pure scalars so it can be
+tested without a client. The assist holds an *authority* in [0, 1]. Movement on
+either axis beyond the nudge it last applied counts as steering, combined as a
+diagonal so a flick is not double counted, and it buys authority back in
+proportion: nothing below a quarter degree, all of it at four degrees, a linear
+ramp between. Authority is surrendered on the tick the hand moves and returned
+at 0.04 per tick, so a release takes about a second.
+
+Two judgement calls, neither settleable without flying:
+
+- **One authority for both axes**, so deliberately looking down also releases
+  the turn help. That is the conservative reading of never fighting the player.
+  Splitting them per axis is the first thing to try if the assist feels like it
+  gives up too easily.
+- **The constants** (`0.25`, `4.0`, `0.04` degrees and fraction per tick) are
+  reasoned guesses, not measured ones.
 
 ### 6. Add a `/slipstream debug` overlay
 
