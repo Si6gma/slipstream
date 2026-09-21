@@ -5,7 +5,9 @@ someone picking this up cold does not have to reconstruct the reasoning.
 
 ## Where things stand
 
-Branch `feature/drafting`, 52 commits ahead of `main`, everything pushed.
+Branch `feature/drafting`, well ahead of `main` and everything pushed. For the
+exact count run `git rev-list --count origin/main..HEAD` rather than trusting a
+number written here, which goes stale on the next commit.
 `./gradlew build` is green and 255 tests pass across both modules.
 
 Shipped on this branch:
