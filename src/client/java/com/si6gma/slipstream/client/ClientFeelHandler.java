@@ -8,6 +8,7 @@ import com.si6gma.slipstream.LocalDraftState;
 import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.LocalParticleSink;
 import com.si6gma.slipstream.ModParticles;
+import com.si6gma.slipstream.EmissionBudget;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.draft.CameraAssistMath;
 import com.si6gma.slipstream.draft.DraftQuery;
@@ -16,6 +17,9 @@ import com.si6gma.slipstream.draft.WakeSample;
 import com.si6gma.slipstream.draft.WakeTrackers;
 import com.si6gma.slipstream.draft.WakeTrail;
 import com.si6gma.slipstream.network.ServerConfigOverride;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -93,9 +97,19 @@ public final class ClientFeelHandler {
     LocalParticleSink sink = localParticles ? new LocalParticleSink(level, RANDOM) : null;
     Vec3 eye = local.position();
 
+    // Nearest first, so the budget below spends itself on the gliders the player is actually
+    // looking at. Wakes are still recorded for every one of them; only the presentation thins.
+    List<Player> gliders = new ArrayList<>();
     for (Player p : level.players()) {
       if (!p.isFallFlying()) continue;
       if (p.position().distanceToSqr(eye) > RANGE_SQ) continue;
+      gliders.add(p);
+    }
+    gliders.sort(Comparator.comparingDouble(p -> p.position().distanceToSqr(eye)));
+
+    int rank = -1;
+    for (Player p : gliders) {
+      rank++;
 
       // Reported velocity still decides whether a glider is moving fast enough to leave a wake at
       // all, but it no longer says which way that wake points. For a remote player it is a multi
@@ -116,8 +130,14 @@ public final class ClientFeelHandler {
       if (s == null) continue;
       Vec3 pos = p.position();
 
-      if (cfg.soundsEnabled) playSurfaceSounds(level, p, s, cfg, pos);
-      if (sink != null) GroundEffectParticles.emit(s, cfg, p.tickCount, RANDOM, pos, sink);
+      // A sound cannot be played fractionally, and exhausting the channel pool makes the mixer
+      // drop sounds that are not necessarily ours, so this is a hard count rather than a thin.
+      if (cfg.soundsEnabled && EmissionBudget.allowSound(rank)) {
+        playSurfaceSounds(level, p, s, cfg, pos);
+      }
+      if (sink != null && RANDOM.nextDouble() < EmissionBudget.viewerShare(rank)) {
+        GroundEffectParticles.emit(s, cfg, p.tickCount, RANDOM, pos, sink);
+      }
     }
 
     WakeTrackers.client().prune(local.tickCount, cfg);

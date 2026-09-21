@@ -1,5 +1,6 @@
 package com.si6gma.slipstream.mixin;
 
+import com.si6gma.slipstream.EmissionBudget;
 import com.si6gma.slipstream.GroundEffectMath;
 import com.si6gma.slipstream.GroundEffectParticles;
 import com.si6gma.slipstream.GroundEffectSample;
@@ -297,6 +298,14 @@ public class LivingEntityMixin implements GroundEffectSampler {
 
     } else {
       if (!(self instanceof ServerPlayer player)) return;
+      // Every particle here is broadcast to every tracking player, so a crowd multiplies twice
+      // over. Thin all gliders equally rather than cutting an arbitrary subset: the server has no
+      // one viewer to rank by, and dropping a changing subset would make wakes flicker.
+      int gliders = 0;
+      for (Player other : player.level().players()) {
+        if (other.isFallFlying()) gliders++;
+      }
+      if (player.getRandom().nextDouble() >= EmissionBudget.fairShare(gliders)) return;
       GroundEffectParticles.emit(
           sample,
           cfg,

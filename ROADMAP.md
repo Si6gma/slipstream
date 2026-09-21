@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 208 tests pass across both modules.
+`./gradlew build` is green and 216 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -130,17 +130,23 @@ Two payoffs: the anticheat exemption problem largely inverts, and a Paper server
 running Slipstream would work for players with **no mod installed at all**, which
 is the biggest distribution unlock available.
 
-### 8. Budget particles and sounds
+### 8. Budget particles and sounds (done)
 
-Nothing caps emission. One glider over water sends up to 22 particle packets
-every 3 ticks plus vortices and bursts every 2, each broadcast to every tracking
-player. Forty gliders is hundreds of packets per tick fanned out forty ways: a
-bandwidth and packet-count problem, not a CPU one. The client plays a positional
-sound per visible glider every 4 ticks on `SoundSource.BLOCKS`, which will
-exhaust the sound channel pool and start dropping *vanilla* sounds.
+`EmissionBudget` holds the two curves, tested.
 
-Sort gliders by distance, emit fully for the nearest few, thin the rest with
-distance, hard cap sounds per tick.
+Client side, gliders in range are sorted nearest first. The closest three keep
+full detail, the rest thin as a reciprocal of rank, which matters because a
+cliff would make a wake pop in and out as two gliders traded places. Sounds are
+a hard count of three a tick rather than a thin, since a sound cannot be played
+fractionally and the failure mode is the mixer dropping *vanilla* sounds.
+
+Server side there is no single viewer to rank by, so every glider is thinned
+equally by `fairShare`, which holds total output at a fixed budget however many
+turn up. A test asserts exactly that: `count * fairShare(count)` never exceeds
+the budget, at any count up to two hundred.
+
+Wakes are still *recorded* for every glider in range. Only the presentation
+thins, so the budget can never change who you are able to draft.
 
 ### 9. Fix the update checker, add a compatibility page (done)
 
