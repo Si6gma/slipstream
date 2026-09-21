@@ -20,9 +20,15 @@ public final class WakeTracker {
 
   /** Records a sample for this glider if the configured sampling interval has elapsed. */
   public void record(UUID id, Vec3 position, double speed, int tick, SlipstreamConfig cfg) {
+    record(id, position, speed, tick, 1.0, cfg);
+  }
+
+  /** As above, stamping the sample with a wake strength multiplier. */
+  public void record(
+      UUID id, Vec3 position, double speed, int tick, double boost, SlipstreamConfig cfg) {
     WakeTrail trail = trails.computeIfAbsent(id, key -> new WakeTrail());
     if (!trail.shouldRecord(tick, cfg.wakeSampleIntervalTicks)) return;
-    trail.record(position, speed, tick);
+    trail.record(position, speed, tick, boost);
   }
 
   /** Drops expired samples, then forgets any glider whose trail has emptied. */

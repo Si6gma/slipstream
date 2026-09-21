@@ -156,7 +156,7 @@ public class LivingEntityMixin implements GroundEffectSampler {
     Vec3 result = velocity;
 
     if (best != null) {
-      double boost = DraftingMath.boostDelta(hSpeed, best.strength(), cfg);
+      double boost = DraftingMath.boostDelta(hSpeed, best.strength(), best.boost(), cfg);
       if (boost > 0.0) result = result.add(heading.scale(boost));
 
       double divergence = ege$lookDivergenceDeg(player, best.wakeHeading());

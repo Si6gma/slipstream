@@ -11,6 +11,7 @@ import net.minecraft.world.phys.Vec3;
  * @param ageSeconds how long ago the leader was at that point
  * @param strength combined age and offset falloff, in [0, 1]
  * @param wakeHeading the leader's heading at that point
+ * @param boost forward acceleration multiplier from that part of the wake, 1.0 normally
  */
 public record DraftQuery(
     Vec3 point,
@@ -18,4 +19,5 @@ public record DraftQuery(
     double lateralOffset,
     double ageSeconds,
     double strength,
-    Vec3 wakeHeading) {}
+    Vec3 wakeHeading,
+    double boost) {}

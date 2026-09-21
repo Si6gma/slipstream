@@ -9,6 +9,20 @@ public final class DraftingMath {
   private static final double TICKS_PER_SECOND = 20.0;
   private static final double EPSILON = 1.0e-6;
 
+  /**
+   * Forward acceleration multiplier for wake left while the leader was under a firework. Popping
+   * a rocket puts a genuine slingshot behind you for a moment, which rewards flying as a group
+   * using a verb players already know rather than a new one.
+   */
+  public static final double FIREWORK_WAKE_BOOST = 2.5;
+
+  /**
+   * Fraction of the normal lifetime a boosted wake keeps. Deliberately short: a slingshot should
+   * be a window you have to be in position for, not a fast lane left lying around for three
+   * seconds after the leader has gone.
+   */
+  public static final double FIREWORK_WAKE_LIFETIME_FRACTION = 0.4;
+
   private DraftingMath() {}
 
   /** A wake spreads as it ages, so an old wake is wide and weak rather than narrow and strong. */
@@ -23,8 +37,19 @@ public final class DraftingMath {
    */
   public static double strength(
       double ageSeconds, double lateralOffset, double radius, SlipstreamConfig cfg) {
+    return strength(ageSeconds, lateralOffset, radius, 1.0, cfg);
+  }
+
+  /**
+   * As above, for wake carrying a boost stamp. A boosted sample ages out faster, so the slingshot
+   * is a window rather than a lane. Strength itself stays within [0, 1]: the boost is spent on
+   * forward acceleration, never on the pull, because a violent sideways yank is not a reward.
+   */
+  public static double strength(
+      double ageSeconds, double lateralOffset, double radius, double boost, SlipstreamConfig cfg) {
     if (radius <= 0.0) return 0.0;
     double lifetimeSeconds = cfg.wakeLifetimeTicks / TICKS_PER_SECOND;
+    if (boost > 1.0) lifetimeSeconds *= FIREWORK_WAKE_LIFETIME_FRACTION;
     if (lifetimeSeconds <= 0.0) return 0.0;
     double ageFalloff = 1.0 - (Math.max(0.0, ageSeconds) / lifetimeSeconds);
     if (ageFalloff <= 0.0) return 0.0;
@@ -43,6 +68,7 @@ public final class DraftingMath {
 
     Vec3 bestPoint = null;
     Vec3 bestHeading = null;
+    double bestBoost = 1.0;
     double bestDistSq = Double.MAX_VALUE;
     double bestAgeTicks = 0.0;
 
@@ -71,6 +97,7 @@ public final class DraftingMath {
       bestDistSq = distSq;
       bestPoint = point;
       bestHeading = heading;
+      bestBoost = newer.boost();
       bestAgeTicks = nowTick - (older.tick() + (newer.tick() - older.tick()) * t);
     }
 
@@ -82,14 +109,15 @@ public final class DraftingMath {
     double ageSeconds = bestAgeTicks / TICKS_PER_SECOND;
     double lateralOffset = Math.sqrt(bestDistSq);
     double radius = wakeRadius(ageSeconds, cfg);
-    double strength = strength(ageSeconds, lateralOffset, radius, cfg);
+    double strength = strength(ageSeconds, lateralOffset, radius, bestBoost, cfg);
     if (strength <= 0.0) return null;
 
     Vec3 toCentre =
         lateralOffset < EPSILON
             ? Vec3.ZERO
             : bestPoint.subtract(follower).scale(1.0 / lateralOffset);
-    return new DraftQuery(bestPoint, toCentre, lateralOffset, ageSeconds, strength, bestHeading);
+    return new DraftQuery(
+        bestPoint, toCentre, lateralOffset, ageSeconds, strength, bestHeading, bestBoost);
   }
 
   /**
@@ -114,10 +142,20 @@ public final class DraftingMath {
    * never the leader's, so drafting accelerates without steering.
    */
   public static double boostDelta(double hSpeed, double strength, SlipstreamConfig cfg) {
+    return boostDelta(hSpeed, strength, 1.0, cfg);
+  }
+
+  /**
+   * As above, with the wake's boost stamp spent here and nowhere else. The ceiling still holds:
+   * a slingshot gets you to overtake speed far faster, it does not take you past a limit the
+   * server set.
+   */
+  public static double boostDelta(
+      double hSpeed, double strength, double boost, SlipstreamConfig cfg) {
     if (!cfg.draftingEnabled || strength <= 0.0) return 0.0;
     double cap = draftCap(cfg);
     if (hSpeed >= cap) return 0.0;
-    return Math.min(strength * cfg.draftAccelerationPerTick, cap - hSpeed);
+    return Math.min(strength * cfg.draftAccelerationPerTick * Math.max(1.0, boost), cap - hSpeed);
   }
 
   /** Closing speed wanted per block of remaining offset. Falls to zero as the gap closes. */

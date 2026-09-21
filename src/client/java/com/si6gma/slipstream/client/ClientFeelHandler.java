@@ -12,6 +12,7 @@ import com.si6gma.slipstream.EmissionBudget;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.draft.CameraAssistMath;
 import com.si6gma.slipstream.draft.DraftQuery;
+import com.si6gma.slipstream.draft.DraftingMath;
 import com.si6gma.slipstream.draft.DraftScan;
 import com.si6gma.slipstream.draft.WakeSample;
 import com.si6gma.slipstream.draft.WakeTrackers;
@@ -29,7 +30,9 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -51,6 +54,8 @@ public final class ClientFeelHandler {
   /** How much of the view the assist currently owns, in [0, 1]. */
   private static double assistAuthority = 1.0;
   private static final double AIM_LOOKAHEAD_BLOCKS = 8.0;
+  /** A rocket boosting a player rides with them, so it is always within about a block. */
+  private static final double FIREWORK_ATTACH_RANGE_SQ = 2.0 * 2.0;
 
   private ClientFeelHandler() {}
 
@@ -97,6 +102,15 @@ public final class ClientFeelHandler {
     LocalParticleSink sink = localParticles ? new LocalParticleSink(level, RANDOM) : null;
     Vec3 eye = local.position();
 
+    // A rocket that is boosting someone rides along with them, so anything this close to a
+    // glider is almost certainly theirs. Cheaper and far less brittle than reaching into the
+    // entity's private attachment field through an accessor mixin, and a rocket that merely
+    // flies past this close leaves one over strong wake sample, which nobody will notice.
+    List<FireworkRocketEntity> rockets = new ArrayList<>();
+    for (Entity entity : level.entitiesForRendering()) {
+      if (entity instanceof FireworkRocketEntity rocket) rockets.add(rocket);
+    }
+
     // Nearest first, so the budget below spends itself on the gliders the player is actually
     // looking at. Wakes are still recorded for every one of them; only the presentation thins.
     List<Player> gliders = new ArrayList<>();
@@ -118,7 +132,14 @@ public final class ClientFeelHandler {
       Vec3 v = p.getDeltaMovement();
       double wakeSpeed = Math.sqrt(v.x * v.x + v.z * v.z);
       if (wakeSpeed >= cfg.effectSpeedThreshold * cfg.maxSpeedBlocksPerTick) {
-        WakeTrackers.client().record(p.getUUID(), p.position(), wakeSpeed, local.tickCount, cfg);
+        WakeTrackers.client()
+            .record(
+                p.getUUID(),
+                p.position(),
+                wakeSpeed,
+                local.tickCount,
+                boostedByFirework(rockets, p) ? DraftingMath.FIREWORK_WAKE_BOOST : 1.0,
+                cfg);
       }
 
       // Cosmetic only: this setting hides other players' effects, it must never disable drafting,
@@ -188,6 +209,14 @@ public final class ClientFeelHandler {
           false);
     }
     wasDrafting = worthAnnouncing;
+  }
+
+  /** Whether one of these rockets is riding along with this glider, boosting them. */
+  private static boolean boostedByFirework(List<FireworkRocketEntity> rockets, Player p) {
+    for (FireworkRocketEntity rocket : rockets) {
+      if (rocket.position().distanceToSqr(p.position()) <= FIREWORK_ATTACH_RANGE_SQ) return true;
+    }
+    return false;
   }
 
   /** Display name of a tracked player, or null when they are no longer in the level. */

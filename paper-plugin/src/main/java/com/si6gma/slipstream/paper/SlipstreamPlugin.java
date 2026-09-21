@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -13,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRegisterChannelEvent;
@@ -27,6 +30,7 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   private static final List<String> SUBCOMMANDS = List.of("enable", "disable", "reload");
 
   private GroundEffectTask task;
+  private final Random durabilityRandom = new Random();
   private boolean effectEnabled = true;
   private int handshakeTimeoutTicks = 60;
   private VersionPolicy.EnforcementPolicy versionEnforcement = VersionPolicy.EnforcementPolicy.DISABLE;
@@ -80,6 +84,30 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
     Player player = e.getPlayer();
     if (player.getListeningPluginChannels().contains(CHANNEL)) {
       Bukkit.getScheduler().runTaskLater(this, () -> sendConfigForWorld(player, player.getWorld().getName()), 2L);
+    }
+  }
+
+  /**
+   * Drafting wears your elytra out more slowly, scaled by how squarely you sit in the wake. It
+   * gives the mechanic a payoff on a survival server where nobody is racing anybody.
+   *
+   * <p>Done through {@link PlayerItemDamageEvent} rather than a mixin. The vanilla cost is one
+   * point every twenty ticks from inside {@code updateFallFlying}, and redirecting that call site
+   * is exactly the kind of fragile injection this mod already has too much of.
+   *
+   * <p>The strength is the server's own estimate and never a number the client sent. A client
+   * able to report its own draft strength would simply always claim a perfect one and never wear
+   * out an elytra again.
+   */
+  @EventHandler
+  public void onItemDamage(PlayerItemDamageEvent e) {
+    if (e.getItem().getType() != Material.ELYTRA) return;
+    Player player = e.getPlayer();
+    if (!player.isGliding()) return;
+    if (!getConfig().getBoolean("drafting-saves-durability", true)) return;
+    double strength = task.draftStrengthFor(player.getUniqueId());
+    if (DraftEstimate.skipDamage(strength, durabilityRandom.nextDouble())) {
+      e.setCancelled(true);
     }
   }
 

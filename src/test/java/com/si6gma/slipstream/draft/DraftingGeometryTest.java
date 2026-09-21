@@ -214,4 +214,77 @@ class DraftingGeometryTest {
     assertNotNull(q, "the earlier horizontal leg is still draftable");
     assertEquals(1.0, q.wakeHeading().x, 1e-9);
   }
+
+  // The firework slingshot
+
+  @Test
+  void aBoostedWakeAcceleratesHarderThanAPlainOne() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    double plain = DraftingMath.boostDelta(0.5, 1.0, 1.0, cfg);
+    double slung = DraftingMath.boostDelta(0.5, 1.0, DraftingMath.FIREWORK_WAKE_BOOST, cfg);
+    assertTrue(slung > plain, "a rocket should leave something worth chasing");
+    assertEquals(plain * DraftingMath.FIREWORK_WAKE_BOOST, slung, 1e-9);
+  }
+
+  @Test
+  void aBoostedWakeStillRespectsTheCeiling() {
+    // A slingshot gets you to overtake speed faster. It does not take you past a limit the
+    // server set, or the speed multiplier would mean nothing.
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    double cap = DraftingMath.draftCap(cfg);
+    double delta = DraftingMath.boostDelta(cap - 0.001, 1.0, 99.0, cfg);
+    assertTrue(cap - 0.001 + delta <= cap + 1e-9, "slingshot broke the ceiling");
+    assertEquals(0.0, DraftingMath.boostDelta(cap, 1.0, 99.0, cfg), 1e-9);
+  }
+
+  @Test
+  void aBoostBelowOneNeverWeakensTheDraft() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    assertEquals(
+        DraftingMath.boostDelta(0.5, 1.0, 1.0, cfg),
+        DraftingMath.boostDelta(0.5, 1.0, 0.1, cfg),
+        1e-9);
+  }
+
+  @Test
+  void aBoostedWakeAgesOutFasterThanAPlainOne() {
+    // The slingshot is a window you have to be in position for, not a lane left lying around.
+    SlipstreamConfig cfg = new SlipstreamConfig(); // 60 ticks = 3.0 seconds
+    double radius = DraftingMath.wakeRadius(1.5, cfg);
+    double plain = DraftingMath.strength(1.5, 0.0, radius, 1.0, cfg);
+    double slung = DraftingMath.strength(1.5, 0.0, radius, DraftingMath.FIREWORK_WAKE_BOOST, cfg);
+    assertTrue(plain > 0.0, "a plain wake is still alive at 1.5 seconds");
+    assertEquals(0.0, slung, 1e-9, "a boosted wake should be gone by then");
+  }
+
+  @Test
+  void aBoostedWakeStrengthStaysWithinTheUnitRange() {
+    // The boost is spent on forward acceleration and never on the pull, because being yanked
+    // sideways harder is not a reward.
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    double radius = DraftingMath.wakeRadius(0.0, cfg);
+    double slung = DraftingMath.strength(0.0, 0.0, radius, DraftingMath.FIREWORK_WAKE_BOOST, cfg);
+    assertTrue(slung <= 1.0 + 1e-9, "strength escaped the unit range: " + slung);
+    assertTrue(slung > 0.0);
+  }
+
+  @Test
+  void nearest_carriesTheBoostStampOfTheSegmentYouAreIn() {
+    WakeTrail trail = new WakeTrail();
+    trail.record(new Vec3(0, 70, 0), 1.0, 100, 1.0);
+    trail.record(new Vec3(4, 70, 0), 1.0, 102, DraftingMath.FIREWORK_WAKE_BOOST);
+
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    DraftQuery q = DraftingMath.nearest(trail, new Vec3(2, 70, 0), 102, cfg);
+    assertNotNull(q);
+    assertEquals(DraftingMath.FIREWORK_WAKE_BOOST, q.boost(), 1e-9);
+  }
+
+  @Test
+  void anUnstampedWakeCarriesNoBoost() {
+    SlipstreamConfig cfg = new SlipstreamConfig();
+    DraftQuery q = DraftingMath.nearest(straightEastTrail(), new Vec3(6, 70, 0), 110, cfg);
+    assertNotNull(q);
+    assertEquals(1.0, q.boost(), 1e-9);
+  }
 }

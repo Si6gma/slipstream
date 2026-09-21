@@ -46,6 +46,16 @@ particles-enabled: true
 # Drafting is client applied either way; only the ground effect moves.
 server-authoritative: true
 
+# Drafting wears your elytra out more slowly, scaled by how squarely you are
+# sitting in someone's wake. Gives the mechanic a payoff on a survival server
+# where nobody is racing anybody.
+#
+# The server works out whether you are drafting from player positions, rather
+# than trusting the client to report it. A client that could report its own
+# draft strength would simply always claim a perfect one. Capped at 75 percent,
+# so an elytra never becomes immortal.
+drafting-saves-durability: true
+
 # Blocks above water where spray particles appear.
 water-spray-height: 5.0
 

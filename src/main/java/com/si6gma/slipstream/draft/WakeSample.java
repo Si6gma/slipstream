@@ -14,5 +14,7 @@ import net.minecraft.world.phys.Vec3;
  * @param position where the glider was
  * @param speed horizontal speed in blocks per tick at that moment
  * @param tick the level tick this was recorded
+ * @param boost wake strength multiplier, 1.0 normally and higher while the glider was under a
+ *     firework, which is what makes a rocket leave a slingshot behind it
  */
-public record WakeSample(Vec3 position, double speed, int tick) {}
+public record WakeSample(Vec3 position, double speed, int tick, double boost) {}

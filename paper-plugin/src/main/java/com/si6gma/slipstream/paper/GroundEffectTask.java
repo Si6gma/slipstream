@@ -46,6 +46,9 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
   // Per-player raycast cache avoids a full DDA traversal every tick
   private final Map<UUID, CachedHit> hitCache = new HashMap<>();
 
+  // Latest server side draft estimate per glider, read by the durability listener.
+  private final Map<UUID, Double> draftStrength = new HashMap<>();
+
   public GroundEffectTask(SlipstreamPlugin plugin) {
     this.plugin = plugin;
     reload();
@@ -91,8 +94,45 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
       } else {
         glidingPlayers.remove(id);
         hitCache.remove(id);
+        draftStrength.remove(id);
       }
     }
+  }
+
+  /** Latest draft estimate for this player, 0 when they are not behind anyone. */
+  double draftStrengthFor(UUID id) {
+    Double value = draftStrength.get(id);
+    return value == null ? 0.0 : value;
+  }
+
+  /**
+   * Whether this glider is sitting in another glider's wake, and how squarely. An approximation,
+   * because the server has no wake trails; see {@link DraftEstimate}.
+   */
+  private double estimateDraft(Player player, Vector vel, double hSpeed) {
+    double fx = vel.getX() / hSpeed;
+    double fz = vel.getZ() / hSpeed;
+    double best = 0.0;
+    for (UUID otherId : glidingPlayers) {
+      if (otherId.equals(player.getUniqueId())) continue;
+      Player other = Bukkit.getPlayer(otherId);
+      if (other == null || !other.isOnline() || !other.isGliding()) continue;
+      if (!other.getWorld().equals(player.getWorld())) continue;
+
+      double dx = other.getLocation().getX() - player.getLocation().getX();
+      double dz = other.getLocation().getZ() - player.getLocation().getZ();
+      double distance = Math.sqrt(dx * dx + dz * dz);
+      if (distance <= 0.0 || distance >= DraftEstimate.RANGE) continue;
+
+      Vector otherVel = other.getVelocity();
+      double otherH = Math.sqrt(otherVel.getX() * otherVel.getX() + otherVel.getZ() * otherVel.getZ());
+      if (otherH <= 1.0e-4) continue;
+
+      double alignment = (dx / distance) * fx + (dz / distance) * fz;
+      double agreement = (otherVel.getX() / otherH) * fx + (otherVel.getZ() / otherH) * fz;
+      best = Math.max(best, DraftEstimate.strength(distance, alignment, agreement));
+    }
+    return best;
   }
 
   private void processPlayer(Player player) {
@@ -103,6 +143,7 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     if (hSpeedSq < 0.0025) return;
 
     double hSpeed = Math.sqrt(hSpeedSq);
+    draftStrength.put(player.getUniqueId(), estimateDraft(player, vel, hSpeed));
     Location pos = player.getLocation();
     World world = pos.getWorld();
 

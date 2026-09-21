@@ -29,8 +29,12 @@ public final class WakeTrail {
   }
 
   public void record(Vec3 position, double speed, int tick) {
+    record(position, speed, tick, 1.0);
+  }
+
+  public void record(Vec3 position, double speed, int tick, double boost) {
     head = (head + 1) % CAPACITY;
-    buffer[head] = new WakeSample(position, speed, tick);
+    buffer[head] = new WakeSample(position, speed, tick, boost);
     if (count < CAPACITY) count++;
     lastRecordedTick = tick;
   }

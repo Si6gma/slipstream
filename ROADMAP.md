@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 225 tests pass across both modules.
+`./gradlew build` is green and 240 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -235,18 +235,42 @@ Derive a hue from the player's identity so overlapping wakes in a pack are
 distinguishable. Needs a particle type carrying colour data rather than a fixed
 tint per type, so it pairs with item 16.
 
-### 14. Firework slingshot
+### 14. Firework slingshot (done)
 
-A leader popping a rocket leaves a brief, much stronger wake, giving followers a
-real slingshot. Emergent, uses an existing vanilla verb, and rewards flying as a
-group. Stamp wake samples recorded during a firework boost with a strength
-multiplier and shorter lifetime, and let the geometry read it.
+`WakeSample` carries a boost stamp, `DraftQuery` reports it, and `boostDelta`
+spends it. A wake left under a rocket accelerates a follower 2.5 times as hard
+and ages out at 40% of the normal lifetime, so the slingshot is a window you
+have to be in position for rather than a fast lane lying around.
 
-### 15. Drafting saves elytra durability
+Two deliberate limits. The boost is spent on forward acceleration and never on
+the pull, because being yanked sideways harder is not a reward. And the draft
+ceiling still holds: a slingshot gets you to overtake speed much faster, it does
+not take you past a limit the server set, or `draftSpeedMultiplier` would mean
+nothing.
 
-Reduce durability cost while drafting, scaled by strength. Gives the mechanic a
-payoff on a survival server where nobody is racing. Server authoritative, so it
-lands naturally alongside item 7.
+Detection is proximity, not an accessor mixin. A rocket boosting someone rides
+along with them, so anything within two blocks of a glider is theirs. Reaching
+into `FireworkRocketEntity.attachedToEntity` would have meant another mixin
+against a private vanilla field, which item 11 is about having less of.
+
+### 15. Drafting saves elytra durability (done, Paper only)
+
+Paper, through `PlayerItemDamageEvent`. Vanilla takes one durability point every
+twenty ticks from inside `updateFallFlying`, so a proportion of those hits is
+skipped rather than a fraction of a point shaved, which averages to the same
+thing over a flight. Capped at 75%, so an elytra never becomes immortal.
+
+**The strength is the server's own estimate, never the client's.** `DraftEstimate`
+asks whether another glider is close ahead and flying the same way. It is an
+approximation, because the server has no wake trails, and that is the right call
+rather than a compromise: the moment a client-reported draft strength buys a
+resource saving, a client simply always claims a perfect draft and never wears
+out an elytra again.
+
+**Fabric server not covered.** The Bukkit event has no Fabric equivalent, and the
+alternative is redirecting the vanilla `hurtAndBreak` call inside
+`updateFallFlying`, which is precisely the fragile injection item 11 exists to
+reduce. Worth doing after item 11, not before it.
 
 ### 16. Custom particle textures
 
