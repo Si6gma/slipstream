@@ -6,6 +6,7 @@ import com.si6gma.slipstream.GroundEffectParticles;
 import com.si6gma.slipstream.GroundEffectSample;
 import com.si6gma.slipstream.GroundEffectSampler;
 import com.si6gma.slipstream.LocalGroundEffectState;
+import com.si6gma.slipstream.MixinHealth;
 import com.si6gma.slipstream.ServerParticleSink;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.draft.DraftQuery;
@@ -216,6 +217,10 @@ public class LivingEntityMixin implements GroundEffectSampler {
     SlipstreamConfig cfg = ServerConfigOverride.get();
     boolean isLocalPlayer =
         self.level().isClientSide() && self instanceof Player player && player.isLocalPlayer();
+    // Proof this injection is still running. Another movement mod cancelling travel at HEAD would
+    // stop it silently, and particles come from elsewhere, so wakes would keep appearing with no
+    // force behind them. See MixinHealth.
+    if (isLocalPlayer) MixinHealth.beat(self.tickCount);
 
     GroundEffectSample sample = slipstream$sample(cfg);
     if (sample == null) {

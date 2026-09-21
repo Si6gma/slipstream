@@ -7,8 +7,10 @@ import com.si6gma.slipstream.GroundEffectSampler;
 import com.si6gma.slipstream.LocalDraftState;
 import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.LocalParticleSink;
+import com.si6gma.slipstream.MixinHealth;
 import com.si6gma.slipstream.ModParticles;
 import com.si6gma.slipstream.EmissionBudget;
+import com.si6gma.slipstream.Slipstream;
 import com.si6gma.slipstream.SlipstreamConfig;
 import com.si6gma.slipstream.draft.CameraAssistMath;
 import com.si6gma.slipstream.draft.DraftQuery;
@@ -77,11 +79,22 @@ public final class ClientFeelHandler {
       LocalDraftState.clear();
       wasDrafting = false;
       resetCameraAssist();
+      MixinHealth.reset();
       WakeTrackers.client().clear();
       return;
     }
 
     SlipstreamConfig cfg = ServerConfigOverride.get();
+
+    // A movement mod cancelling travel at HEAD stops our physics without stopping our particles,
+    // so the player sees wakes and feels nothing. Say so once rather than leaving them with a
+    // clean log and a mod quietly doing half its job.
+    if (local.isFallFlying() && MixinHealth.shouldWarn(local.tickCount)) {
+      Slipstream.LOGGER.warn(
+          "Slipstream's physics injection has not run for two seconds of gliding. Another "
+              + "movement mod is most likely cancelling LivingEntity.travel before it reaches "
+              + "us. Wakes and particles will still appear, but no force is being applied.");
+    }
 
     double target =
         cfg.fovKickEnabled && ServerConfigOverride.isBoostAllowed()

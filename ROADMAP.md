@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 240 tests pass across both modules.
+`./gradlew build` is green and 247 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -198,18 +198,31 @@ README.
 - `update.json` and its `updateJsonUrl` are gone, since Fabric Loader ignores
   both.
 
-### 11. Harden the mixin
+### 11. Harden the mixin (two thirds done)
 
-A single `@Inject(method = "travel", at = @At("TAIL"))` on `LivingEntity` with
-`defaultRequire: 1` is the entire physics surface, while the jar claims 26.1
-through 26.3. When Mojang next splits `travel`, users on a snapshot-tracking pack
-get a hard crash at launch.
+**Silent failure now speaks.** The injection leaves a heartbeat and the client
+tick notices when it stops, logging one line naming the likely cause. This
+repairs nothing. It turns an invisible incompatibility, where particles keep
+appearing because they come from a different path while no force is applied at
+all, into a bug report that can actually be answered. Detection needed no second
+injection point, which would have added to the very surface being de-risked.
 
-Add a headless client launch or gametest per supported version in CI. Detect and
-log when another movement mod's HEAD-cancelling mixin makes the TAIL injection
-never run, since particles keep appearing while forces silently stop. Switch the
-FOV mixin to MixinExtras `@ModifyReturnValue`: it has shipped inside Fabric
-Loader since 0.15, so the comment explaining why it was avoided is stale.
+**The FOV mixin is `@ModifyReturnValue` now.** The comment explaining why
+MixinExtras was avoided was stale; it has shipped inside Fabric Loader since
+0.15. Beyond removing the stale note it composes properly: several mods
+modifying one return value each see the previous result, where cancellable
+injects race to be last and silently discard each other.
+
+**CI builds the matrix**, verified locally against 26.2 as well as 26.3. It
+covers only those two, because they are the two whose dependency sets are known
+good; `supported_minecraft_versions` also claims 26.1.x, and guessing their
+Fabric API and Cloth versions would ship a permanently red job.
+
+**Still open: the runtime half.** A matrix build catches API drift and a mixin
+target that no longer resolves at compile time. It cannot catch a mixin that
+compiles and then fails to apply, because mixins apply at runtime. That needs a
+headless launch or a gametest per version, and it is the part of this item that
+actually guards against the launch crash.
 
 ### 12. Trim the config screen (done)
 
