@@ -125,7 +125,7 @@ public class LivingEntityMixin implements GroundEffectSampler {
   @Unique
   private Vec3 ege$applyDrafting(
       Player player, Vec3 velocity, SlipstreamConfig cfg, double groundProximity) {
-    WakeTracker tracker = WakeTrackers.forLevel(player.level());
+    WakeTracker tracker = WakeTrackers.client();
     Vec3 pos = player.position();
     int now = player.tickCount;
 

@@ -110,6 +110,14 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
   private void sendConfigForWorld(Player player, String worldName) {
     if (!player.isOnline()) return;
     if (!isVersionGateOpen(player)) return;
+    // The payload is what grants the client permission to move itself faster, so it is also the
+    // right place to honour an anticheat exemption. Default true, so a server that never touches
+    // permissions behaves exactly as before; an operator who exempts only some players revokes it
+    // for the rest and those clients are told to switch the effects off rather than left silent.
+    if (!player.hasPermission("slipstream.use")) {
+      sendDisabledConfig(player);
+      return;
+    }
     if (getConfig().getStringList("disabled-worlds").contains(worldName)) {
       sendDisabledConfig(player);
     } else if (effectEnabled) {

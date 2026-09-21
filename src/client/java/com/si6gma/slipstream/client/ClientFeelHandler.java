@@ -68,8 +68,6 @@ public final class ClientFeelHandler {
       LocalDraftState.clear();
       wasDrafting = false;
       resetCameraAssist();
-      // Only ever clear our own side here. The server tracker is cleared on the server thread by
-      // SERVER_STOPPED; touching it from the client thread races the integrated server.
       WakeTrackers.client().clear();
       return;
     }
@@ -148,7 +146,7 @@ public final class ClientFeelHandler {
     boolean worthAnnouncing = drafting && draftedQuery.strength() > DRAFT_ENTRY_THRESHOLD;
 
     if (cfg.particlesEnabled && cfg.draftParticlesEnabled) {
-      drawWakes(level, cfg, local.tickCount, drafting ? draftedLeader : null);
+      drawWakes(level, cfg, local.tickCount, drafting ? draftedLeader : null, local.getUUID());
       if (drafting) drawDraftStrength(level, local, draftedQuery);
     }
 
@@ -189,13 +187,17 @@ public final class ClientFeelHandler {
    * @param draftedLeader the player whose wake the local player is drafting, or null for none
    */
   private static void drawWakes(
-      ClientLevel level, SlipstreamConfig cfg, int now, UUID draftedLeader) {
+      ClientLevel level, SlipstreamConfig cfg, int now, UUID draftedLeader, UUID self) {
     var idleLook = ModParticles.wakeTrail();
     var riddenLook = ModParticles.draftActive();
     if (idleLook == null || riddenLook == null) return;
     double lifetimeSeconds = cfg.wakeLifetimeTicks / 20.0;
     if (lifetimeSeconds <= 0.0) return;
     for (UUID id : WakeTrackers.client().ids()) {
+      // Never draw our own wake. It sits directly behind the camera and reads as exhaust smoke
+      // trailing a solo flight, which is the opposite of the cue it was meant to be. Your own
+      // vortices already come from the ground effect particles.
+      if (id.equals(self)) continue;
       WakeTrail trail = WakeTrackers.client().trailFor(id);
       boolean riding = id.equals(draftedLeader);
       // Every third sample keeps an idle wake readable without flooding the particle budget. The

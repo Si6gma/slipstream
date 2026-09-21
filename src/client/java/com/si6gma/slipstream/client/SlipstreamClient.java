@@ -57,7 +57,11 @@ public class SlipstreamClient implements ClientModInitializer {
         (handler, sender, client) -> {
           ServerConfigOverride.setSingleplayer(
               client.hasSingleplayerServer() && !client.getSingleplayerServer().isPublished());
-          ClientPlayNetworking.send(new HelloPayload(SlipstreamProtocol.VERSION, modVersion()));
+          // Only speak to a server that said it can listen. Sending regardless makes every
+          // proxy in front of a vanilla server log an unknown channel on every join.
+          if (ClientPlayNetworking.canSend(HelloPayload.TYPE)) {
+            ClientPlayNetworking.send(new HelloPayload(SlipstreamProtocol.VERSION, modVersion()));
+          }
         });
 
     // Revert to local config on disconnect (singleplayer uses local config)

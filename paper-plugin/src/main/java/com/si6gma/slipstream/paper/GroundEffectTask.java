@@ -51,8 +51,8 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
   public void reload() {
     effectHeight = plugin.getConfig().getDouble("effect-height", 20.0);
     waterSprayHeight = plugin.getConfig().getDouble("water-spray-height", 5.0);
-    effectSpeedThreshold = plugin.getConfig().getDouble("effect-speed-threshold", 0.2);
-    maxSpeed = plugin.getConfig().getDouble("max-speed", 3.0);
+    effectSpeedThreshold = plugin.getConfig().getDouble("effect-speed-threshold", 0.3);
+    maxSpeed = plugin.getConfig().getDouble("max-speed", 1.5);
     particlesEnabled = plugin.getConfig().getBoolean("particles-enabled", true);
     disabledWorlds = new HashSet<>(plugin.getConfig().getStringList("disabled-worlds"));
   }

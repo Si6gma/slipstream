@@ -81,8 +81,13 @@ boost.
 
 All values are tunable. On Fabric, the config lives at
 `.minecraft/config/slipstream.json`. On Paper, it's
-`plugins/slipstream/config.yml`. Run `/slipstream reload` to push updated values
-to all online players live.
+`plugins/slipstream/config.yml`.
+
+On Paper, `/slipstream reload` pushes updated values to all online players live.
+Fabric has no reload command: edit the config in game through Mod Menu, where
+changes apply immediately, or restart. The only Fabric command is
+`/slipstream debug`, a client side overlay for diagnosing a server that is not
+granting effects.
 
 | Option             | Default | Notes                                                     |
 | ------------------ | ------- | --------------------------------------------------------- |
@@ -137,6 +142,10 @@ cd slipstream
 ---
 
 ## Compatibility
+
+Running an anticheat, or wondering why the boost does nothing on your server?
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the `slipstream.use`
+permission node and exemption recipes for Grim, NCP, Vulcan and Matrix.
 
 - Minecraft 26.1 through 26.3
 - Fabric Loader ≥ 0.19.5 · Fabric API ≥ 0.145.4

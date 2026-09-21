@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 201 tests pass across both modules.
+`./gradlew build` is green and 208 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -142,34 +142,43 @@ exhaust the sound channel pool and start dropping *vanilla* sounds.
 Sort gliders by distance, emit fully for the nearest few, thin the rest with
 distance, hard cap sounds per tick.
 
-### 9. Fix the update checker, add a compatibility page
+### 9. Fix the update checker, add a compatibility page (done)
 
-`UpdateChecker` points at `project/elytra-slipstream` while the project id is
-`ESOV1nxn`. Even if the slug resolved, the Paper artifact publishes as
-`<version>-paper` so the equality check can never match, meaning every server
-console gets an update nag on every boot forever. Server owners will open an
-issue about this before anything else.
+The checker now asks for project id `ESOV1nxn` and filters to the paper loader,
+and the comparison is `VersionCompare.isNewer` instead of an inequality that
+could never be satisfied. Suffixes and build metadata are stripped from both
+sides, so `1.0.3-paper` against `1.0.3` is correctly silent, and a server ahead
+of the release is not nagged to downgrade. Anything unparseable stays quiet,
+because a boot warning that cries wolf is worse than one that misses a release.
 
-Alongside it: a compatibility page with concrete anticheat exemption recipes for
-Grim, NCP, Vulcan and Matrix, and a `slipstream.use` permission node so the
-plugin only grants the payload to exempted players.
+`VersionCompare` is a separate Bukkit free class purely so it can be tested:
+`paper-api` is `compileOnly`, so a class touching it cannot load in a unit test.
 
-### 10. Cleanup batch
+`slipstream.use` gates the config payload in `sendConfigForWorld`, the one place
+a grant happens. Default `true`, so an existing server is unaffected; revoking
+it sends the disabled config rather than nothing, so those clients switch the
+effects off rather than sitting in an ambiguous state.
 
-- `WakeTrackers.SERVER`, `server()`, `clearAll()` and `forLevel()` are dead since
-  server-side wake tracking was dropped.
-- A comment in `ClientFeelHandler` still points at a `SERVER_STOPPED` handler
-  that no longer exists.
-- `SlipstreamClient` sends the hello unconditionally, including to servers that
-  never advertised the channel. Guard with `canSend` so proxies stop logging
-  unknown-channel noise.
-- The Paper particle task reads `max-speed` default `3.0` and threshold `0.2`
-  while `sendConfig` reads `1.5` and `0.3`, so an older `config.yml` gates server
-  particles and clients differently.
-- `drawWakes` trails smoke behind your own solo flights.
-- The README promises a `/slipstream reload` command that does not exist on
-  Fabric.
-- `update.json` is ignored by Fabric Loader.
+`docs/COMPATIBILITY.md` covers why an anticheat cares at all, the permission
+node, and exemption recipes for Grim, NCP, Vulcan and Matrix, linked from the
+README.
+
+### 10. Cleanup batch (done)
+
+- `WakeTrackers` is down to the one client tracker. `forLevel` was still called,
+  from the mixin, but the drafting path runs only for the local player, so it
+  had exactly one possible answer.
+- The `SERVER_STOPPED` comment went with it.
+- The hello is guarded with `canSend`, so a vanilla join no longer makes every
+  proxy log an unknown channel.
+- The Paper particle task read `max-speed` `3.0` and threshold `0.2` against the
+  payload's `1.5` and `0.3`. Both now match the mod's own defaults.
+- `drawWakes` skips your own trail. It sat directly behind the camera and read
+  as exhaust smoke on a solo flight, the opposite of the cue intended.
+- The README now says `/slipstream reload` is Paper only and names
+  `/slipstream debug` as the Fabric command.
+- `update.json` and its `updateJsonUrl` are gone, since Fabric Loader ignores
+  both.
 
 ### 11. Harden the mixin
 

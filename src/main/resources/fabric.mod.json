@@ -19,7 +19,6 @@
     "modmenu": ["com.si6gma.slipstream.client.SlipstreamModMenu"]
   },
   "mixins": ["slipstream.mixins.json"],
-  "updateJsonUrl": "https://raw.githubusercontent.com/Si6gma/slipstream/main/update.json",
   "custom": {
     "modrinth": "ESOV1nxn"
   },

@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 final class UpdateChecker {
 
   private static final String API_URL =
-      "https://api.modrinth.com/v2/project/elytra-slipstream/version";
+      "https://api.modrinth.com/v2/project/ESOV1nxn/version?loaders=%5B%22paper%22%5D";
   private static final Pattern VERSION_PATTERN =
       Pattern.compile("\"version_number\":\\s*\"([^\"]+)\"");
 
@@ -36,7 +36,7 @@ final class UpdateChecker {
         Matcher m = VERSION_PATTERN.matcher(body);
         if (!m.find()) return;
         String latest = m.group(1);
-        if (!latest.equals(current)) {
+        if (VersionCompare.isNewer(latest, current)) {
           plugin.getLogger().warning(
               "Slipstream " + latest + " is available (running " + current + ")."
               + " https://modrinth.com/mod/slipstream");

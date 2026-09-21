@@ -16,3 +16,7 @@ permissions:
   slipstream.admin:
     description: Access to /slipstream admin commands.
     default: op
+  slipstream.use:
+    description: Receive the Slipstream config payload, which is what allows the client to apply
+      the boost. Revoke it for players your anticheat does not exempt.
+    default: true
