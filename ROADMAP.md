@@ -52,9 +52,15 @@ Do not relitigate these without a reason.
   records the design as approved rather than as built. Item 4 replaced it: the
   heading is derived from the sample positions at query time.
 
-## Remaining work, in order
+## The work, in order
 
-Each item is independent unless noted. The ordering is by what reaches users.
+Items 4 to 16 are all addressed. Numbering is kept as it was so the cross
+references between items still mean something.
+
+Three carry a caveat in their own section, and they are the three worth reading
+before anything else: item 7 changes how Paper applies physics and has not been
+flown, item 11 closes two thirds of the mixin risk and names the third, and item
+16 ships sprites nobody has looked at.
 
 ### 4. Derive wake headings from leader position history (done)
 
@@ -341,13 +347,23 @@ redraw.
 ## What is not verified
 
 Everything on this branch has been flown briefly in singleplayer on Minecraft
-26.2. What has **not** been tested:
+26.2, and nothing added since has been flown at all. The suite is 255 tests and
+every force curve, budget, policy and format in it is covered, but a test cannot
+tell you whether a slipstream feels like a slipstream.
+
+What has **not** been tested:
 
 - Drafting with two real players, which is the entire point of the feature.
   `DraftingTurnTest` now simulates a leader and a follower through a ninety
   degree turn against the real tracker and geometry, which is a regression guard
   and not a substitute: it cannot tell you whether the pull *feels* right, and
   it models neither latency nor interpolation. Two clients still have to fly it.
-- Anything on a dedicated server, Fabric or Paper.
+- Anything on a dedicated server, Fabric or Paper. This now matters more than it
+  did: under item 7 the Paper plugin moves players itself with `setVelocity`,
+  which is a different feel and a different anticheat story from the client
+  applying it, and `server-authoritative` defaults to true.
+- The debug overlay and the new particle sprites have never been rendered. Both
+  compile and their data is verified, which is not the same thing.
+- The durability saving, which needs two players on a Paper server to observe.
 - The version handshake end to end against a genuinely mismatched client.
 - Behaviour with more than a couple of gliders, which is what item 8 addresses.
