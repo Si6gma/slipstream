@@ -89,42 +89,43 @@ changes apply immediately, or restart. The only Fabric command is
 `/slipstream debug`, a client side overlay for diagnosing a server that is not
 granting effects.
 
-| Option             | Default | Notes                                                     |
-| ------------------ | ------- | --------------------------------------------------------- |
-| Effect height      | `20.0`  | Blocks above surface where the effect starts              |
-| Acceleration       | `0.005` | Speed gained per tick at maximum proximity                |
-| Max speed          | `1.5`   | Hard ceiling in blocks/tick (vanilla firework peaks ~1.5) |
-| Water spray height | `5.0`   | How close to water before spray kicks in                  |
-| Lift strength      | `0.6`   | Upward force when skimming level                          |
-| Speed threshold    | `0.3`   | Fraction of max speed before lift and vortices start      |
-| Particles enabled  | `true`  | Set to `false` to disable all ground effect particles     |
-| Sounds enabled     | `true`  | Wind, wake, and skim sounds (client only)                 |
-| Sound volume       | `1.0`   | 0 to 2, multiplies all Slipstream sounds (client only)   |
-| FOV kick enabled   | `true`  | Widen FOV with ground effect speed (client only)          |
-| FOV kick strength  | `0.1`   | 0 to 0.5, fraction of FOV added at max effect (client)    |
-| Particles on vanilla servers | `true` | Render particles locally when the server lacks the mod |
-| Remote player particles | `true` | Particles and sounds for other gliders you can see  |
-| Drafting           | `true`  | Ride other players' wakes (server pushed)                 |
-| Draft acceleration | `0.08`  | Speed gained per tick at the centre of a fresh wake        |
-| Draft speed mult.  | `1.0`   | Ceiling while drafting, as a multiple of max speed         |
-| Pull strength      | `0.25`  | How firmly you are steered onto the wake line              |
-| Pull release angle | `35.0`  | Look this far from the wake and the pull lets go           |
-| Wake particles     | `true`  | Draw other players' wakes (client only)                    |
-| Camera assist      | `true`  | Ease your view toward the wake; you may always turn it off  |
-| Camera assist str. | `0.5`   | 0 to 0.5, how hard the view eases (server pushed)           |
-| Version enforcement | `disable` | Server side: `off`, `disable` or `kick` a mismatched client |
-| Handshake timeout  | `60`    | Server side: ticks to wait for a client to report its version |
+### In game
 
-The Paper plugin also has `override-clients` (default `true`) to push server
-values to connecting clients, and `disabled-worlds` to opt specific worlds out
-entirely.
+With [Mod Menu](https://modrinth.com/mod/modmenu) and
+[Cloth Config](https://modrinth.com/mod/cloth-config), these are editable under
+Mods > Slipstream. They are the presentation choices and the two switches a
+player actually flips, and no server can override any of them.
 
-Client only options are never overridden by a server. With
-[Mod Menu](https://modrinth.com/mod/modmenu) and
-[Cloth Config](https://modrinth.com/mod/cloth-config) installed, the options above are editable in
-game under Mods > Slipstream. A few wake tuning values (wake radius and spread, wake lifetime and
-sampling interval, and the leader bonus) are file only, since they are server tuning knobs rather
-than player preferences.
+| Option                       | Default | Notes                                              |
+| ---------------------------- | ------- | -------------------------------------------------- |
+| Drafting                     | `true`  | Ride other players' wakes                          |
+| Camera assist                | `true`  | Ease your view toward the wake. Always yours to refuse |
+| Wake particles               | `true`  | Draw other players' wakes                          |
+| Particles enabled            | `true`  | All ground effect particles                        |
+| Particles on vanilla servers | `true`  | Render locally when the server lacks the mod       |
+| Remote player particles      | `true`  | Effects for other gliders you can see              |
+| FOV kick enabled             | `true`  | Widen FOV with ground effect speed                 |
+| FOV kick strength            | `0.1`   | 0 to 0.5, fraction of FOV added at max effect      |
+| Sounds enabled               | `true`  | Wind, wake and skim sounds                         |
+| Sound volume                 | `1.0`   | 0 to 2, multiplies all Slipstream sounds           |
+
+### File only
+
+Everything else is tuning rather than preference, and lives only in the config
+file. On a server that runs Slipstream these are pushed by the server anyway, so
+a GUI field for them would do nothing and read as broken.
+
+Physics: effect height, acceleration, max speed, lift strength, speed threshold,
+water spray height.
+
+Drafting: draft acceleration, draft speed multiplier, pull strength, pull release
+angle, camera assist strength, wake base radius, wake spread rate, wake lifetime,
+wake sample interval, leader bonus per drafter and its cap.
+
+Server side: version enforcement (`off`, `disable` or `kick`) and handshake
+timeout. The Paper plugin adds `override-clients` and `disabled-worlds`, and the
+`slipstream.use` permission node described in
+[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ---
 

@@ -193,13 +193,23 @@ never run, since particles keep appearing while forces silently stop. Switch the
 FOV mixin to MixinExtras `@ModifyReturnValue`: it has shipped inside Fabric
 Loader since 0.15, so the comment explaining why it was avoided is stale.
 
-### 12. Trim the config screen
+### 12. Trim the config screen (done)
 
-Nobody tunes a release angle in degrees from a GUI. The file-only bucket already
-exists for wake radius, spread, lifetime and sampling interval; the same applies
-to draft acceleration, release angle and speed multiplier. What remains should be
-volume, particles, FOV and a few toggles. The twenty-five row README config table
-is the same symptom.
+The screen is down from twenty one entries to ten: three drafting toggles, five
+visual, two audio. The whole physics category and every drafting number are file
+only now.
+
+The argument turned out to be stronger than "nobody tunes a release angle from a
+GUI". Every value removed is server pushed, so on any server running Slipstream
+editing the field did nothing at all, which reads as a broken setting rather than
+an overridden one.
+
+Camera assist keeps its toggle even though the server sets its strength, because
+switching it off is an accessibility choice and someone it makes ill should not
+have to find a JSON file to stop their view being moved.
+
+The README table is split the same way: a ten row table of what the GUI shows,
+then a prose list of what is file only and why.
 
 ### 13. Tint each wake by whose it is
 

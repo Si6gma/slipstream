@@ -25,112 +25,25 @@ public final class SlipstreamConfigScreen {
     ConfigEntryBuilder e = builder.entryBuilder();
     Component serverNote = Component.translatable("tooltip.slipstream.serverOverride");
 
-    ConfigCategory physics =
-        builder.getOrCreateCategory(Component.translatable("category.slipstream.physics"));
-    physics.addEntry(
-        e.startDoubleField(label("effectHeightBlocks"), cfg.effectHeightBlocks)
-            .setDefaultValue(defaults.effectHeightBlocks)
-            .setMin(1.0)
-            .setMax(256.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.effectHeightBlocks = v)
-            .build());
-    physics.addEntry(
-        e.startDoubleField(label("accelerationPerTick"), cfg.accelerationPerTick)
-            .setDefaultValue(defaults.accelerationPerTick)
-            .setMin(0.0)
-            .setMax(1.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.accelerationPerTick = v)
-            .build());
-    physics.addEntry(
-        e.startDoubleField(label("maxSpeedBlocksPerTick"), cfg.maxSpeedBlocksPerTick)
-            .setDefaultValue(defaults.maxSpeedBlocksPerTick)
-            .setMin(0.1)
-            .setMax(20.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.maxSpeedBlocksPerTick = v)
-            .build());
-    physics.addEntry(
-        e.startDoubleField(label("liftStrength"), cfg.liftStrength)
-            .setDefaultValue(defaults.liftStrength)
-            .setMin(0.0)
-            .setMax(1.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.liftStrength = v)
-            .build());
-    physics.addEntry(
-        e.startDoubleField(label("effectSpeedThreshold"), cfg.effectSpeedThreshold)
-            .setDefaultValue(defaults.effectSpeedThreshold)
-            .setMin(0.0)
-            .setMax(1.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.effectSpeedThreshold = v)
-            .build());
-    physics.addEntry(
-        e.startDoubleField(label("waterSprayHeightBlocks"), cfg.waterSprayHeightBlocks)
-            .setDefaultValue(defaults.waterSprayHeightBlocks)
-            .setMin(1.0)
-            .setMax(256.0)
-            .setTooltip(
-                serverNote,
-                Component.translatable("tooltip.slipstream.sprayCappedByEffectHeight"))
-            .setSaveConsumer(v -> cfg.waterSprayHeightBlocks = v)
-            .build());
+    // Only presentation and the few choices a player actually makes live here. Every physics
+    // value is server pushed, so a field for it would do nothing on a server that has the mod
+    // and would read as broken; the config file stays the place to tune singleplayer.
 
     ConfigCategory drafting =
         builder.getOrCreateCategory(Component.translatable("category.slipstream.drafting"));
     drafting.addEntry(
         e.startBooleanToggle(label("draftingEnabled"), cfg.draftingEnabled)
             .setDefaultValue(defaults.draftingEnabled)
-            .setTooltip(serverNote)
             .setSaveConsumer(v -> cfg.draftingEnabled = v)
-            .build());
-    drafting.addEntry(
-        e.startDoubleField(label("draftAccelerationPerTick"), cfg.draftAccelerationPerTick)
-            .setDefaultValue(defaults.draftAccelerationPerTick)
-            .setMin(0.0)
-            .setMax(1.0)
             .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.draftAccelerationPerTick = v)
             .build());
-    drafting.addEntry(
-        e.startDoubleField(label("draftSpeedMultiplier"), cfg.draftSpeedMultiplier)
-            .setDefaultValue(defaults.draftSpeedMultiplier)
-            .setMin(1.0)
-            .setMax(3.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.draftSpeedMultiplier = v)
-            .build());
-    drafting.addEntry(
-        e.startDoubleField(label("draftPullStrength"), cfg.draftPullStrength)
-            .setDefaultValue(defaults.draftPullStrength)
-            .setMin(0.0)
-            .setMax(1.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.draftPullStrength = v)
-            .build());
-    drafting.addEntry(
-        e.startDoubleField(label("draftReleaseAngleDeg"), cfg.draftReleaseAngleDeg)
-            .setDefaultValue(defaults.draftReleaseAngleDeg)
-            .setMin(0.0)
-            .setMax(90.0)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.draftReleaseAngleDeg = v)
-            .build());
+    // Kept in the GUI where the rest of the camera assist tuning is not: a server sets its
+    // strength, but switching it off is an accessibility choice, and someone it makes ill should
+    // not have to find a JSON file to stop their view being moved.
     drafting.addEntry(
         e.startBooleanToggle(label("draftCameraAssist"), cfg.draftCameraAssist)
             .setDefaultValue(defaults.draftCameraAssist)
-            .setTooltip(serverNote)
             .setSaveConsumer(v -> cfg.draftCameraAssist = v)
-            .build());
-    drafting.addEntry(
-        e.startDoubleField(label("draftCameraAssistStrength"), cfg.draftCameraAssistStrength)
-            .setDefaultValue(defaults.draftCameraAssistStrength)
-            .setMin(0.0)
-            .setMax(0.5)
-            .setTooltip(serverNote)
-            .setSaveConsumer(v -> cfg.draftCameraAssistStrength = v)
             .build());
     drafting.addEntry(
         e.startBooleanToggle(label("draftParticlesEnabled"), cfg.draftParticlesEnabled)
