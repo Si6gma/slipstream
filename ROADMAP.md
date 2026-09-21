@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 216 tests pass across both modules.
+`./gradlew build` is green and 225 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -119,16 +119,28 @@ sends back and a protocol bump to 3, which was not done unprompted.
 **Not verified by rendering.** This builds, and the HUD and command APIs
 resolve, but no one has seen it draw. One client launch settles it.
 
-### 7. Make the Paper path server authoritative
+### 7. Make the Paper path server authoritative (done, unflown)
 
-Have the plugin apply the ground effect itself with `setVelocity` on the server
-tick it already runs, so the boost fires `PlayerVelocityEvent`, which essentially
-every anticheat respects. Keep the client path for Fabric servers and
-singleplayer where the round trip would cost feel.
+`GroundEffectTask` already ran per tick with proximity, distance and speed in
+hand; it just never applied force. It now calls `setVelocity` with the same two
+curves the Fabric client uses, mirrored into the plugin's `GroundEffectMath` and
+pinned by tests on both sides. `server-authoritative` defaults to true.
 
-Two payoffs: the anticheat exemption problem largely inverts, and a Paper server
-running Slipstream would work for players with **no mod installed at all**, which
-is the biggest distribution unlock available.
+**The double-apply problem, solved without a protocol bump.** A modded client
+would otherwise apply the ground effect *and* receive the server's. The existing
+wire format already carries acceleration and lift strength, so under server
+authority the plugin sends both as zero: `liftForce` returns zero immediately at
+strength 0, including its antigravity term, and `boostDelta` multiplies by
+acceleration. Everything else is sent unchanged, so a modded client keeps
+drafting, camera assist and particles. No protocol 3, no lockstep release.
+
+Drafting stays client applied either way. Moving it server side would need wake
+trails on the server, which were deliberately dropped.
+
+**Not flown.** The trade is a round trip: the client no longer predicts the
+boost, so at real latency it may feel less immediate than the client path, and
+whether it rubber bands is exactly the kind of thing that cannot be settled from
+a test. The config key exists so an operator can go back.
 
 ### 8. Budget particles and sounds (done)
 

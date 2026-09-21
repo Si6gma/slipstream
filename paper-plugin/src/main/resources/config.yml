@@ -32,6 +32,20 @@ max-speed: 1.5
 # Set to false to disable all ground effect particles server-wide.
 particles-enabled: true
 
+# Apply the ground effect on the server with setVelocity rather than letting the
+# client do it.
+#
+# Two reasons to leave this on. A server set velocity fires PlayerVelocityEvent,
+# which essentially every anticheat respects, so the speed is the server's claim
+# rather than an unexplained client one. And it works for players with no mod
+# installed at all, which is the only way most of your players will ever see it.
+#
+# The cost is a round trip: the client no longer predicts the boost itself, so
+# at high latency it can feel less immediate. Turn this off to go back to the
+# client applying it, in which case exempt your players from anticheat instead.
+# Drafting is client applied either way; only the ground effect moves.
+server-authoritative: true
+
 # Blocks above water where spray particles appear.
 water-spray-height: 5.0
 

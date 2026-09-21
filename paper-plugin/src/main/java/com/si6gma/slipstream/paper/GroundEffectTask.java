@@ -33,6 +33,9 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
   private double waterSprayHeight;
   private double effectSpeedThreshold;
   private double maxSpeed;
+  private double acceleration;
+  private double liftStrength;
+  private boolean serverAuthoritative;
   private boolean particlesEnabled;
   private Set<String> disabledWorlds;
   private final Random random = new Random();
@@ -53,6 +56,9 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
     waterSprayHeight = plugin.getConfig().getDouble("water-spray-height", 5.0);
     effectSpeedThreshold = plugin.getConfig().getDouble("effect-speed-threshold", 0.3);
     maxSpeed = plugin.getConfig().getDouble("max-speed", 1.5);
+    acceleration = plugin.getConfig().getDouble("acceleration", 0.005);
+    liftStrength = plugin.getConfig().getDouble("lift-strength", 0.6);
+    serverAuthoritative = plugin.getConfig().getBoolean("server-authoritative", true);
     particlesEnabled = plugin.getConfig().getBoolean("particles-enabled", true);
     disabledWorlds = new HashSet<>(plugin.getConfig().getStringList("disabled-worlds"));
   }
@@ -90,7 +96,6 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
   }
 
   private void processPlayer(Player player) {
-    if (!particlesEnabled) return;
     if (disabledWorlds.contains(player.getWorld().getName())) return;
     if (player.isUnderWater() || player.isInLava()) return;
     Vector vel = player.getVelocity();
@@ -129,6 +134,16 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
 
     double proximity = GroundEffectMath.proximity(distToSurface, effectHeight);
     double surfaceY = hitLoc.getY();
+
+    // Apply the ground effect here rather than letting the client do it. Moving a player with
+    // setVelocity fires PlayerVelocityEvent, which essentially every anticheat respects, so the
+    // exemption problem largely inverts: the server is the one claiming the speed. It also means
+    // a player with no mod at all gets the effect, which is the whole point.
+    if (serverAuthoritative && hSpeed >= effectSpeedThreshold * maxSpeed) {
+      applyGroundEffect(player, vel, hSpeed, proximity);
+    }
+
+    if (!particlesEnabled) return;
 
     // Normalised travel + right vectors
     double tx = vel.getX() / hSpeed;
@@ -317,6 +332,38 @@ public class GroundEffectTask extends BukkitRunnable implements Listener {
   public void cleanup() {
     hitCache.clear();
     glidingPlayers.clear();
+  }
+
+  /**
+   * The server half of the ground effect: the same two forces the Fabric client applies, from the
+   * same curves.
+   *
+   * <p>A modded client is sent zeroed acceleration and lift precisely so this cannot double up
+   * with the client's own. See {@code SlipstreamPlugin.sendConfig}.
+   */
+  private void applyGroundEffect(Player player, Vector vel, double hSpeed, double proximity) {
+    if (!player.hasPermission("slipstream.use")) return;
+    double ySpeed = vel.getY();
+    double boost = GroundEffectMath.boostDelta(hSpeed, ySpeed, proximity, acceleration, maxSpeed);
+    double lift =
+        GroundEffectMath.liftForce(
+            ySpeed, -player.getLocation().getPitch(), proximity, liftStrength, hSpeed, maxSpeed);
+    if (boost == 0.0 && lift == 0.0) return;
+
+    Vector next = vel.clone();
+    if (boost != 0.0) {
+      next.setX(vel.getX() + (vel.getX() / hSpeed) * boost);
+      next.setZ(vel.getZ() + (vel.getZ() / hSpeed) * boost);
+      // The curve refuses to accelerate at or above the ceiling, but the composed vector can
+      // still land past it, so clamp rather than trust the inputs.
+      double nextH = Math.sqrt(next.getX() * next.getX() + next.getZ() * next.getZ());
+      if (nextH > maxSpeed && nextH > 1.0e-6) {
+        next.setX(next.getX() * (maxSpeed / nextH));
+        next.setZ(next.getZ() * (maxSpeed / nextH));
+      }
+    }
+    if (lift != 0.0) next.setY(ySpeed + lift);
+    player.setVelocity(next);
   }
 
   private record CachedHit(RayTraceResult result, Vector pos, long tick) {}

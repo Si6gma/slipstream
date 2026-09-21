@@ -34,4 +34,73 @@ class GroundEffectMathTest {
       prev = curr;
     }
   }
+
+  // The server authoritative forces. This class is a hand kept mirror of the Fabric side, so
+  // these pin the behaviour that has to match rather than merely that it compiles.
+
+  @Test
+  void boostDelta_scalesWithProximity() {
+    assertEquals(0.005, GroundEffectMath.boostDelta(1.0, -0.1, 1.0, 0.005, 1.5), 1e-9);
+    assertEquals(0.0025, GroundEffectMath.boostDelta(1.0, -0.1, 0.5, 0.005, 1.5), 1e-9);
+    assertEquals(0.0, GroundEffectMath.boostDelta(1.0, -0.1, 0.0, 0.005, 1.5), 1e-9);
+  }
+
+  @Test
+  void boostDelta_refusesAtOrAboveTheCeiling() {
+    assertEquals(0.0, GroundEffectMath.boostDelta(1.5, -0.1, 1.0, 0.005, 1.5), 1e-9);
+    assertEquals(0.0, GroundEffectMath.boostDelta(2.0, -0.1, 1.0, 0.005, 1.5), 1e-9);
+  }
+
+  @Test
+  void boostDelta_refusesWhileClimbing() {
+    // Ground effect accelerates level or descending flight only. The deadband absorbs the
+    // antigravity term so lift nudging ySpeed just past zero cannot toggle the gate every tick.
+    assertEquals(0.0, GroundEffectMath.boostDelta(1.0, 0.2, 1.0, 0.005, 1.5), 1e-9);
+    assertTrue(GroundEffectMath.boostDelta(1.0, 0.04, 1.0, 0.005, 1.5) > 0.0);
+  }
+
+  @Test
+  void liftForce_pushesUpWhenSinking() {
+    assertTrue(GroundEffectMath.liftForce(-0.2, 0.0, 1.0, 0.6, 1.5, 1.5) > 0.0);
+  }
+
+  @Test
+  void liftForce_pushesDownWhenClimbing() {
+    assertTrue(GroundEffectMath.liftForce(0.2, 0.0, 1.0, 0.6, 1.5, 1.5) < 0.0);
+  }
+
+  @Test
+  void liftForce_neverOvershootsLevel() {
+    for (double ySpeed = -1.0; ySpeed <= 1.0; ySpeed += 0.05) {
+      double lift = GroundEffectMath.liftForce(ySpeed, 0.0, 1.0, 0.6, 1.5, 1.5);
+      double after = ySpeed + lift;
+      if (ySpeed < 0) {
+        assertTrue(after <= 1e-9, "sinking overshot to " + after);
+      } else if (ySpeed > 0) {
+        assertTrue(after >= -1e-9, "climbing overshot to " + after);
+      }
+    }
+  }
+
+  @Test
+  void liftForce_disengagesOutsideThePitchWindow() {
+    // Past thirty degrees the player is deliberately climbing or diving and is left alone.
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.2, 31.0, 1.0, 0.6, 1.5, 1.5), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.2, -31.0, 1.0, 0.6, 1.5, 1.5), 1e-9);
+    assertTrue(GroundEffectMath.liftForce(-0.2, 29.0, 1.0, 0.6, 1.5, 1.5) != 0.0);
+  }
+
+  @Test
+  void liftForce_isZeroWithoutStrengthOrCeiling() {
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.2, 0.0, 1.0, 0.0, 1.5, 1.5), 1e-9);
+    assertEquals(0.0, GroundEffectMath.liftForce(-0.2, 0.0, 1.0, 0.6, 1.5, 0.0), 1e-9);
+  }
+
+  @Test
+  void speedRatio_clampsToTheUnitRange() {
+    assertEquals(0.0, GroundEffectMath.speedRatio(0.0, 1.5), 1e-9);
+    assertEquals(1.0, GroundEffectMath.speedRatio(1.5, 1.5), 1e-9);
+    assertEquals(1.0, GroundEffectMath.speedRatio(9.0, 1.5), 1e-9);
+    assertEquals(0.0, GroundEffectMath.speedRatio(1.0, 0.0), 1e-9);
+  }
 }

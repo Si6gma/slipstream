@@ -309,13 +309,22 @@ public class SlipstreamPlugin extends JavaPlugin implements Listener, TabComplet
 
   void sendConfig(Player player) {
     if (!player.isOnline()) return;
+    // Under server authority the plugin applies the ground effect itself with setVelocity, so a
+    // modded client must not also apply its own or the two stack. Zeroing acceleration and lift
+    // says exactly that within the existing wire format, with no protocol bump: liftForce returns
+    // zero immediately at liftStrength 0, including its antigravity term, and boostDelta
+    // multiplies by acceleration.
+    //
+    // Everything else is sent unchanged, so a modded client keeps drafting, the camera assist and
+    // its particles. Drafting stays client applied either way; only the ground effect moves.
+    boolean authoritative = getConfig().getBoolean("server-authoritative", true);
     try {
       player.sendPluginMessage(this, CHANNEL, PayloadCodec.serialize(
           getConfig().getDouble("effect-height", 20.0),
-          getConfig().getDouble("acceleration", 0.005),
+          authoritative ? 0.0 : getConfig().getDouble("acceleration", 0.005),
           getConfig().getDouble("max-speed", 1.5),
           getConfig().getDouble("water-spray-height", 5.0),
-          getConfig().getDouble("lift-strength", 0.6),
+          authoritative ? 0.0 : getConfig().getDouble("lift-strength", 0.6),
           getConfig().getDouble("effect-speed-threshold", 0.3),
           draftFromConfig()));
     } catch (IOException ex) {
