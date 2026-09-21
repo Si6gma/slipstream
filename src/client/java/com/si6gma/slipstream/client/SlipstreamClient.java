@@ -8,10 +8,13 @@ import com.si6gma.slipstream.network.ServerConfigOverride;
 import com.si6gma.slipstream.network.ServerConfigPayload;
 import com.si6gma.slipstream.network.SlipstreamProtocol;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.network.chat.Component;
 
 public class SlipstreamClient implements ClientModInitializer {
 
@@ -65,6 +68,26 @@ public class SlipstreamClient implements ClientModInitializer {
         });
 
     ClientFeelHandler.register();
+    SlipstreamDebugHud.register();
+
+    // A client command, not a server one: everything it reports is client state, so it has to
+    // work on a vanilla server, which is exactly where "it doesn't work" gets reported from.
+    ClientCommandRegistrationCallback.EVENT.register(
+        (dispatcher, registryAccess) ->
+            dispatcher.register(
+                ClientCommands.literal("slipstream")
+                    .then(
+                        ClientCommands.literal("debug")
+                            .executes(
+                                context -> {
+                                  boolean on = SlipstreamDebugHud.toggle();
+                                  context
+                                      .getSource()
+                                      .sendFeedback(
+                                          Component.literal(
+                                              "Slipstream debug overlay " + (on ? "on" : "off")));
+                                  return 1;
+                                }))));
   }
 
   /** Display only, sent alongside the protocol version so logs and messages name a version. */

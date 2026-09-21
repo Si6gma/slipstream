@@ -248,7 +248,8 @@ public class LivingEntityMixin implements GroundEffectSampler {
       LocalGroundEffectState.set(
           proximity,
           GroundEffectMath.speedRatio(hSpeed, cfg.maxSpeedBlocksPerTick),
-          sample.isWater());
+          sample.isWater(),
+          sample.distToSurface());
 
       if (ServerConfigOverride.isBoostAllowed()) {
         Vec3 result = velocity;

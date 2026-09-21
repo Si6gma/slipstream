@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 189 tests pass across both modules.
+`./gradlew build` is green and 201 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -98,15 +98,26 @@ Two judgement calls, neither settleable without flying:
 - **The constants** (`0.25`, `4.0`, `0.04` degrees and fraction per tick) are
   reasoned guesses, not measured ones.
 
-### 6. Add a `/slipstream debug` overlay
+### 6. Add a `/slipstream debug` overlay (done, with one gap)
 
-One screen: server state (vanilla, Fabric mod, Paper plugin, or disabled by
-policy and why), both protocol numbers, whether boost is allowed, distance to
-surface, proximity, speed against the active cap, and draft strength with the
-leader's name.
+`/slipstream debug` toggles a HUD overlay. It is a *client* command, so it works
+on a vanilla server, which is where "it doesn't work" gets reported from.
 
-Every support report will be "it doesn't work" or "something moved me", and both
-are answered by one screenshot. The critique rated this above any new mechanic.
+`DebugReport` in `src/main` owns the formatting as pure strings and is tested,
+including that numbers use a dot on a German client. The overlay reads draft
+strength from `LocalDraftState`, recorded by the same `DraftScan` the flight
+code uses, so the screen cannot disagree with the forces the player felt.
+
+**The gap.** Traffic after the hello is one way, so the client is never told the
+server's protocol number, whether it is Fabric or Paper, or which policy it
+applied. The overlay prints `server not reported` rather than guessing. It does
+still separate vanilla from withheld, by asking whether the server declared our
+channel rather than whether a config arrived, which is the distinction that
+actually changes the support answer. Closing the rest needs a payload the server
+sends back and a protocol bump to 3, which was not done unprompted.
+
+**Not verified by rendering.** This builds, and the HUD and command APIs
+resolve, but no one has seen it draw. One client launch settles it.
 
 ### 7. Make the Paper path server authoritative
 

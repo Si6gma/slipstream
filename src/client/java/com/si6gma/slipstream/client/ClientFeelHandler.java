@@ -4,6 +4,7 @@ import com.si6gma.slipstream.GroundEffectMath;
 import com.si6gma.slipstream.GroundEffectParticles;
 import com.si6gma.slipstream.GroundEffectSample;
 import com.si6gma.slipstream.GroundEffectSampler;
+import com.si6gma.slipstream.LocalDraftState;
 import com.si6gma.slipstream.LocalGroundEffectState;
 import com.si6gma.slipstream.LocalParticleSink;
 import com.si6gma.slipstream.ModParticles;
@@ -64,6 +65,7 @@ public final class ClientFeelHandler {
     if (local == null || level == null) {
       fovKick = 0.0f;
       LocalGroundEffectState.clear();
+      LocalDraftState.clear();
       wasDrafting = false;
       resetCameraAssist();
       // Only ever clear our own side here. The server tracker is cleared on the server thread by
@@ -138,6 +140,11 @@ public final class ClientFeelHandler {
     // zero and an unexplained sideways shove is worse than a faint cue. The entry sound keeps a
     // threshold so it does not chirp every time you clip the edge of someone's wake.
     boolean drafting = draftedQuery != null;
+    // Recorded for the debug overlay from the one search the flight code also uses, so the screen
+    // a player screenshots can never disagree with the forces they felt.
+    LocalDraftState.set(
+        drafting ? draftedQuery.strength() : 0.0,
+        drafting ? leaderName(level, draftedLeader) : null);
     boolean worthAnnouncing = drafting && draftedQuery.strength() > DRAFT_ENTRY_THRESHOLD;
 
     if (cfg.particlesEnabled && cfg.draftParticlesEnabled) {
@@ -163,6 +170,15 @@ public final class ClientFeelHandler {
           false);
     }
     wasDrafting = worthAnnouncing;
+  }
+
+  /** Display name of a tracked player, or null when they are no longer in the level. */
+  private static String leaderName(ClientLevel level, UUID id) {
+    if (id == null) return null;
+    for (Player p : level.players()) {
+      if (p.getUUID().equals(id)) return p.getName().getString();
+    }
+    return null;
   }
 
   /**
