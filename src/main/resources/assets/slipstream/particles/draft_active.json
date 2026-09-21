@@ -1,12 +1,8 @@
 {
   "textures": [
-    "minecraft:glitter_0",
-    "minecraft:glitter_1",
-    "minecraft:glitter_2",
-    "minecraft:glitter_3",
-    "minecraft:glitter_4",
-    "minecraft:glitter_5",
-    "minecraft:glitter_6",
-    "minecraft:glitter_7"
+    "slipstream:streak_0",
+    "slipstream:streak_1",
+    "slipstream:streak_2",
+    "slipstream:streak_3"
   ]
 }

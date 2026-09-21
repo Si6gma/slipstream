@@ -6,7 +6,7 @@ someone picking this up cold does not have to reconstruct the reasoning.
 ## Where things stand
 
 Branch `feature/drafting`, 40 commits ahead of `main`, everything pushed.
-`./gradlew build` is green and 247 tests pass across both modules.
+`./gradlew build` is green and 255 tests pass across both modules.
 
 Shipped on this branch:
 
@@ -242,11 +242,29 @@ have to find a JSON file to stop their view being moved.
 The README table is split the same way: a ten row table of what the GUI shows,
 then a prose list of what is file only and why.
 
-### 13. Tint each wake by whose it is
+### 13. Tint each wake by whose it is (done)
 
-Derive a hue from the player's identity so overlapping wakes in a pack are
-distinguishable. Needs a particle type carrying colour data rather than a fixed
-tint per type, so it pairs with item 16.
+`WakeHue` derives a stable pale colour per player id. The wake you are *riding*
+keeps its own bright look, because telling "the one I am in" from "everyone
+else's" matters more than whose it is.
+
+**No new particle type was needed.** A wake particle is painted at a stationary
+point, so its three velocity arguments were always zero and now carry the tint
+instead, flagged per style by `hueFromSpawnArgs`. That avoided a custom
+`ParticleOptions` with its codec, stream codec and registry entry.
+
+**What it cannot promise.** Player ids are effectively random, so no per player
+hash can guarantee two given players differ. Guaranteeing it would mean handing
+out hues from the current player list, and then your wake would change colour
+whenever somebody logged in, which is worse than an occasional clash. The tests
+assert what is actually true instead: hues use the whole circle, and near collisions
+stay rare.
+
+A first attempt multiplied the id by the golden ratio conjugate and kept the
+fraction. That trick spreads *sequential* inputs, which ids are not, and a float
+has 24 mantissa bits, so the fractional part quantised and most players came out
+the same colour. The test caught it; the fix is a 64 bit avalanche mix and the
+top 24 bits.
 
 ### 14. Firework slingshot (done)
 
@@ -285,20 +303,25 @@ alternative is redirecting the vanilla `hurtAndBreak` call inside
 `updateFallFlying`, which is precisely the fragile injection item 11 exists to
 reduce. Worth doing after item 11, not before it.
 
-### 16. Custom particle textures
+### 16. Custom particle textures (done, unseen)
 
-Generate the mod's own atlas procedurally. The shapes needed are abstract and
-radial, which procedural generation is good at, unlike character art.
+`tools/generate_particles.py` writes sixteen 16x16 sprites into
+`assets/slipstream/textures/particle/`: an expanding vortex ring over eight
+frames, a streak over four, a haze over four. Standard library only, no Pillow,
+and deterministic, so rerunning it leaves the tree unchanged.
 
-- An expanding **vortex ring** that thins over its frames, reading as disturbed
-  air rather than smoke. Vanilla has no sprite that does this, so it is the one
-  place custom art buys something tinting cannot fake.
-- A soft elongated **streak** for draft strength particles.
-- A fine **haze** for old wakes.
+All three are white RGB with the shape entirely in the alpha channel, which is
+what keeps per-role tinting working and what made item 13 possible at all: a
+sprite with colour baked in could only ever be darkened.
 
-Author greyscale with alpha so per-role tinting still applies and per-player wake
-hues become possible. Ship as animated sprite sequences so `setSpriteFromAge`
-keeps working.
+Wired up as `wing_vortex` to the ring, `wake_trail` to the haze, `draft_active`
+to the streak, still as sprite sequences so `setSpriteFromAge` keeps working.
+
+**Nobody has seen these.** The PNGs are verified to be valid RGBA and the ring
+is verified ring shaped by reading its alpha back, but whether they *look* right
+in a world is unknown. They are the most likely thing on this branch to need a
+second pass, and the generator is a few constants to adjust rather than a
+redraw.
 
 ## Build notes
 

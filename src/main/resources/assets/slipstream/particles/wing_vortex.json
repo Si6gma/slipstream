@@ -1,9 +1,12 @@
 {
   "textures": [
-    "minecraft:generic_4",
-    "minecraft:generic_3",
-    "minecraft:generic_2",
-    "minecraft:generic_1",
-    "minecraft:generic_0"
+    "slipstream:vortex_ring_0",
+    "slipstream:vortex_ring_1",
+    "slipstream:vortex_ring_2",
+    "slipstream:vortex_ring_3",
+    "slipstream:vortex_ring_4",
+    "slipstream:vortex_ring_5",
+    "slipstream:vortex_ring_6",
+    "slipstream:vortex_ring_7"
   ]
 }

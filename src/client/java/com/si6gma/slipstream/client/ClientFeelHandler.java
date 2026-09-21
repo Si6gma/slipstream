@@ -12,6 +12,7 @@ import com.si6gma.slipstream.ModParticles;
 import com.si6gma.slipstream.EmissionBudget;
 import com.si6gma.slipstream.Slipstream;
 import com.si6gma.slipstream.SlipstreamConfig;
+import com.si6gma.slipstream.WakeHue;
 import com.si6gma.slipstream.draft.CameraAssistMath;
 import com.si6gma.slipstream.draft.DraftQuery;
 import com.si6gma.slipstream.draft.DraftingMath;
@@ -273,14 +274,19 @@ public final class ClientFeelHandler {
         // Drawing sparsely rather than faintly: an old wake thins instead of dimming. The ridden
         // wake skips that thinning entirely so it reads as solid for as long as it is usable.
         if (!riding && RANDOM.nextFloat() > fade) continue;
+        // The wake you are riding keeps its own bright look, because telling "the one I am in"
+        // from "everyone else's" matters more than whose it is. Every other wake is tinted by its
+        // owner, so overlapping trails in a pack stay distinguishable. The tint travels in the
+        // velocity arguments, which a wake never uses: see WingVortexParticle.Style.
+        float[] tint = riding ? null : WakeHue.rgbFor(id);
         level.addParticle(
             riding ? riddenLook : idleLook,
             s.position().x,
             s.position().y,
             s.position().z,
-            0,
-            0,
-            0);
+            tint == null ? 0 : tint[0],
+            tint == null ? 0 : tint[1],
+            tint == null ? 0 : tint[2]);
       }
     }
   }

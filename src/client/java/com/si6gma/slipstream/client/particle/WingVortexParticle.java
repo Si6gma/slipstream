@@ -26,6 +26,9 @@ public class WingVortexParticle extends SingleQuadParticle {
    * @param lifeSpread extra lifetime added at random
    * @param spin radians of roll added per tick
    * @param drag fraction of velocity retained per tick, lower is snappier
+   * @param hueFromSpawnArgs read the spawn velocity as an RGB tint instead of as motion, which is
+   *     how a wake gets the colour of whoever left it without a custom particle type and the
+   *     codec, stream codec and registry entry that would come with one
    */
   public record Style(
       float red,
@@ -37,19 +40,20 @@ public class WingVortexParticle extends SingleQuadParticle {
       int lifeBase,
       int lifeSpread,
       float spin,
-      float drag) {}
+      float drag,
+      boolean hueFromSpawnArgs) {}
 
   /** Wingtip vortices during ground effect: small, white, quick. The original look. */
   public static final Style GROUND_EFFECT =
-      new Style(1.0f, 1.0f, 1.0f, 0.55f, 0.18f, 0.12f, 18, 8, 0.03f, 0.88f);
+      new Style(1.0f, 1.0f, 1.0f, 0.55f, 0.18f, 0.12f, 18, 8, 0.03f, 0.88f, false);
 
   /** Another glider's wake: broad, pale and cool, drifting. Air someone passed through. */
   public static final Style WAKE =
-      new Style(0.62f, 0.78f, 1.0f, 0.32f, 0.30f, 0.18f, 26, 10, 0.012f, 0.94f);
+      new Style(0.62f, 0.78f, 1.0f, 0.32f, 0.30f, 0.18f, 26, 10, 0.012f, 0.94f, true);
 
   /** The wake you are riding, and your draft strength: tight, bright, fast. */
   public static final Style DRAFT =
-      new Style(0.40f, 0.95f, 1.0f, 0.85f, 0.11f, 0.11f, 12, 7, 0.09f, 0.82f);
+      new Style(0.40f, 0.95f, 1.0f, 0.85f, 0.11f, 0.11f, 12, 7, 0.09f, 0.82f, false);
 
   private final SpriteSet sprites;
   private final Style style;
@@ -69,7 +73,17 @@ public class WingVortexParticle extends SingleQuadParticle {
     this.style = style;
     this.lifetime = style.lifeBase() + random.nextInt(style.lifeSpread());
     this.alpha = style.alpha();
-    this.setColor(style.red(), style.green(), style.blue());
+    // A wake carries the colour of whoever left it in place of a velocity, since it never had
+    // one: drawWakes paints stationary points. Anything else keeps the style's own tint.
+    boolean tinted = style.hueFromSpawnArgs() && (vx != 0.0 || vy != 0.0 || vz != 0.0);
+    if (tinted) {
+      this.setColor((float) vx, (float) vy, (float) vz);
+      this.xd = 0.0;
+      this.yd = 0.0;
+      this.zd = 0.0;
+    } else {
+      this.setColor(style.red(), style.green(), style.blue());
+    }
     this.quadSize = style.sizeBase() + random.nextFloat() * style.sizeSpread();
     this.gravity = 0.0f;
     this.hasPhysics = false;
